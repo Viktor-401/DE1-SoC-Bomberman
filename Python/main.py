@@ -9,31 +9,43 @@ import copy as c
 
 MAP_SIZE = 21
 BOMB_TIME = 3 # ticks
-BOMB_POWER = 4 # 4 quadrados de raio
-PLAYER_VELOCITY = 1
 MOVE_COOLDOWN = 5
+
+# Default values
+DEFAULT_LIVES = 1   
+DEFAULT_BOMBS = 1
+DEFAULT_POWER = 4
+DEFAULT_VELOCITY = 1
+P1_X = 1
+P1_Y = 1
+P2_X = 19
+P2_Y = 19
 
 # Tipos para serem usados na estrutura Celula
 
 NADA = 0
 BLOCO = 1
 BARREIRA = 2 # Bloco indestrutivel
-PLAYER = 3
+PLAYER1 = 3
 BOMBA = 4
 ITEM = 5
+PLAYER2 = 6
 
 # Cores
 COR_NADA = Back.WHITE + "  "
-COR_BLOCO = Back.RED + "  "
+COR_BLOCO = Back.LIGHTCYAN_EX + "  "
 COR_BARREIRA = Back.BLACK + "  "
-COR_PLAYER = Back.BLUE + "P1"
+COR_PLAYER1 = Back.BLUE + "P1"
+COR_PLAYER2 = Back.RED + "P2"
 COR_BOMBA = Back.GREEN+ "@*"
 COR_ITEM = Back.YELLOW + "  "
+
 
 # Estados do jogo
 EM_PROGRESSO = 0
 JOGADOR_1_WIN = 1
 JOGADOR_2_WIN = 2
+EMPATE = 3
 
 # direções
 UP = 0
@@ -51,16 +63,18 @@ class Celula:
 
 
 class Player:
-    vida = 1
-    bombas = 1
-    velocidade = 1
-    x = 0
-    y = 0
+    vida = DEFAULT_LIVES
+    bombas = DEFAULT_BOMBS
+    poder = DEFAULT_POWER
+    velocidade = DEFAULT_VELOCITY
+    x = P1_X
+    y = P1_Y
     direcao = DOWN
 
-    def __init__(self, vida, bombas, velocidade, x, y, direcao) -> None:
+    def __init__(self, vida, bombas, poder, velocidade, x, y, direcao) -> None:
         self.vida = vida
         self.bombas = bombas
+        self.poder = poder
         self.velocidade = velocidade
         self.x = x
         self.y = y
@@ -80,7 +94,7 @@ class Bloco:
 class Bomba:
     dono = None
     tempo = BOMB_TIME
-    poder = BOMB_POWER
+    poder = DEFAULT_POWER
 
     def __init__(self, dono=Player, tempo=int, poder=int) -> None:
         self.dono = dono
@@ -104,14 +118,12 @@ class Item:
         self.maisVida = maisVida
 
 class Mapa:
-    matrizAtual = [[Celula(NADA, None) for i in range(20)] for i in range(20)]
-    matrizNova = [[Celula(NADA, None) for i in range(20)] for i in range(20)]
+    matriz = [[Celula(NADA, None) for i in range(20)] for i in range(20)]
     x = 0
     y = 0
 
-    def __init__(self, matrizAtual, matrizNova,x, y) -> None:
-        self.matrizAtual = matrizAtual
-        self.matrizNova = matrizNova
+    def __init__(self, matriz,x, y) -> None:
+        self.matriz = matriz
         self.x = x
         self.y = y
 
@@ -139,54 +151,60 @@ def dano(celula=Celula):
             celula.objeto.tempo = 0
             explodir(celula.objeto)
 
+def dano_player(x=int, y=int):
+    if x == p1.x and y == p1.y: 
+        p1.vida -= 1
+    if x == p2.x and y == p2.y:
+        p2.vida -= 1
+
 def explodir(bomba=Bomba):
     if bomba.tempo > 0:
         bomba.tempo -= 1
         print(bomba.tempo)
         return False
     i = 1
-    while not dano(mapa.matrizNova[mapa.x-i][mapa.y]) and i <= bomba.poder: # Dar dano até o fim do raio da bomba ou acertar algo
+    while not dano(mapa.matriz[mapa.x-i][mapa.y]) and i <= bomba.poder: # Dar dano até o fim do raio da bomba ou acertar algo
+        dano_player(mapa.x-i, mapa.y)
         i +=1
     i = 1
-    while not dano(mapa.matrizNova[mapa.x+i][mapa.y]) and i <= bomba.poder: # 4 direções
+    while not dano(mapa.matriz[mapa.x+i][mapa.y]) and i <= bomba.poder: # 4 direções
+        dano_player(mapa.x+i, mapa.y)
         i += 1
     i = 1
-    while not dano(mapa.matrizNova[mapa.x][mapa.y-i]) and i <= bomba.poder:
+    while not dano(mapa.matriz[mapa.x][mapa.y-i]) and i <= bomba.poder:
+        dano_player(mapa.x, mapa.y-i)
         i += 1
     i = 1
-    while not dano(mapa.matrizNova[mapa.x][mapa.y+i]) and i <= bomba.poder:
+    while not dano(mapa.matriz[mapa.x][mapa.y+i]) and i <= bomba.poder:
+        dano_player(mapa.x, mapa.y+i)
         i += 1
 
-    mapa.matrizNova[mapa.x][mapa.y] = Celula(NADA, None)
+    mapa.matriz[mapa.x][mapa.y] = Celula(NADA, None)
     bomba.dono.bombas += 1
 
     return True
 
-def mover_jogador(direcao):
+def mover_jogador(player=Player, direcao=int):
     match direcao:
         case 0: # up
-            if mapa.matrizAtual[mapa.x-1][mapa.y].tipo == NADA: # se quadrado vazio
-                mapa.matrizNova[mapa.x][mapa.y].objeto.direcao = UP
-                mapa.matrizNova[mapa.x-1][mapa.y] = mapa.matrizAtual[mapa.x][mapa.y] # mover Player para o quadrado
-                mapa.matrizNova[mapa.x][mapa.y] = Celula(NADA, None) # posição anterior do Player é vazia
+            if mapa.matriz[player.x-1][player.y].tipo == NADA: # se quadrado vazio
+                player.direcao = UP
+                player.x -= 1
                 return True
         case 1: # down
-            if mapa.matrizAtual[mapa.x+1][mapa.y].tipo == NADA: 
-                mapa.matrizNova[mapa.x][mapa.y].objeto.direcao = DOWN
-                mapa.matrizNova[mapa.x+1][mapa.y] = mapa.matrizAtual[mapa.x][mapa.y]
-                mapa.matrizNova[mapa.x][mapa.y] = Celula(NADA, None)
+            if mapa.matriz[player.x+1][player.y].tipo == NADA: 
+                player.direcao = DOWN
+                player.x += 1
                 return True
         case 2: # left
-            if mapa.matrizAtual[mapa.x][mapa.y-1].tipo == NADA:
-                mapa.matrizNova[mapa.x][mapa.y].objeto.direcao = LEFT
-                mapa.matrizNova[mapa.x][mapa.y-1] = mapa.matrizAtual[mapa.x][mapa.y]
-                mapa.matrizNova[mapa.x][mapa.y] = Celula(NADA, None)
+            if mapa.matriz[player.x][player.y-1].tipo == NADA:
+                player.direcao = LEFT
+                player.y -= 1
                 return True
         case 3: # right
-            if mapa.matrizAtual[mapa.x][mapa.y+1].tipo == NADA:
-                mapa.matrizNova[mapa.x][mapa.y].objeto.direcao = RIGHT
-                mapa.matrizNova[mapa.x][mapa.y+1] = mapa.matrizAtual[mapa.x][mapa.y]
-                mapa.matrizNova[mapa.x][mapa.y] = Celula(NADA, None)
+            if mapa.matriz[player.x][player.y+1].tipo == NADA:
+                player.direcao = RIGHT
+                player.y += 1
                 return True
     return False
 
@@ -196,49 +214,40 @@ def colocar_bomba(player=Player):
     if player.bombas > 0:
         match direcao:
             case 0: # up
-                if mapa.matrizAtual[mapa.x-1][mapa.y].tipo == NADA: # se quadrado vazio
-                    mapa.matrizNova[mapa.x-1][mapa.y] = Celula(BOMBA, Bomba(player, BOMB_TIME, BOMB_POWER)) # Colocar bomba
+                if mapa.matriz[player.x-1][player.y].tipo == NADA: # se quadrado vazio
+                    mapa.matriz[player.x-1][player.y] = Celula(BOMBA, Bomba(player, BOMB_TIME, player.poder)) # Colocar bomba
                     bombaColocada = True
             case 1: # down
-                if mapa.matrizAtual[mapa.x+1][mapa.y].tipo == NADA: 
-                    mapa.matrizNova[mapa.x+1][mapa.y] = Celula(BOMBA, Bomba(player, BOMB_TIME, BOMB_POWER))
+                if mapa.matriz[player.x+1][player.y].tipo == NADA: 
+                    mapa.matriz[player.x+1][player.y] = Celula(BOMBA, Bomba(player, BOMB_TIME, player.poder))
                     bombaColocada = True
             case 2: # left
-                if mapa.matrizAtual[mapa.x][mapa.y-1].tipo == NADA:
-                    mapa.matrizNova[mapa.x][mapa.y-1] = Celula(BOMBA, Bomba(player, BOMB_TIME, BOMB_POWER))
+                if mapa.matriz[player.x][player.y-1].tipo == NADA:
+                    mapa.matriz[player.x][player.y-1] = Celula(BOMBA, Bomba(player, BOMB_TIME, player.poder))
                     bombaColocada = True
             case 3: # right
-                if mapa.matrizAtual[mapa.x][mapa.y+1].tipo == NADA:
-                    mapa.matrizNova[mapa.x][mapa.y+1] = Celula(BOMBA, Bomba(player, BOMB_TIME, BOMB_POWER))
+                if mapa.matriz[player.x][player.y+1].tipo == NADA:
+                    mapa.matriz[player.x][player.y+1] = Celula(BOMBA, Bomba(player, BOMB_TIME, player.poder))
                     bombaColocada = True
     if bombaColocada: player.bombas -= 1
     return bombaColocada
-
-def atualizar_celula(celula=Celula):
-    match celula.tipo:
-        case 3: # Player
-            direcao = input("Movimento(u,d,l,r):")
-            match direcao:
-                case "u": direcao = UP
-                case "d": direcao = DOWN
-                case "l": direcao = LEFT
-                case "r": direcao = RIGHT
-                case _: direcao = 4
-
-            mover_jogador(direcao)
-            if input("Colocar Bomba:") == "s":
-                colocar_bomba(celula.objeto)
-
-            print("bombas:" + str(celula.objeto.bombas))
-        case 4: # Bomba
-            explodir(celula.objeto)
 
 def atualizar_jogo(mapa=Mapa):
     for y in range(MAP_SIZE):
         for x in range(MAP_SIZE):
             mapa.x = x
             mapa.y = y
-            atualizar_celula(mapa.matrizAtual[x][y])
+            if mapa.matriz[x][y].tipo == BOMBA:
+                explodir(mapa.matriz[x][y].objeto) 
+    
+    if p1.vida < 1 and p2.vida < 1:
+        return EMPATE
+    elif p1.vida < 1:
+        return JOGADOR_2_WIN
+    elif p2.vida < 1:
+        return JOGADOR_1_WIN
+    else:
+        return EM_PROGRESSO
 
 def gerar_mapa(layout=list):
     matriz = [[0 for i in range(21)] for i in range(21)]
@@ -254,15 +263,34 @@ def gerar_mapa(layout=list):
                 case 2:
                     # Barreira
                     matriz[i][j] = Celula(BARREIRA, Bloco(1, None))
-                case 3:
-                    # Player
-                    matriz[i][j] = Celula(PLAYER, Player(1,1,1,0,0,DOWN))
-    mapa = Mapa(matriz, c.deepcopy(matriz), 0, 0)
+    mapa = Mapa(matriz, 0, 0)
 
     return mapa
 
+def player_stats(player=Player):
+    print("Vidas:" + str(player.vida))
+    print("Bombas:" + str(player.bombas))
+    print("Poder:" + str(player.poder))
+    print("Velocidade:" + str(player.velocidade))
+    print("X:" + str(player.x))
+    print("Y:" + str(player.y))
+    print("Direção:" + str(player.direcao))
+
+def inputs(player=Player):
+    direcao = input("Movimento(u,d,l,r):")
+    match direcao:
+        case "u": direcao = UP
+        case "d": direcao = DOWN
+        case "l": direcao = LEFT
+        case "r": direcao = RIGHT
+        case _: direcao = 4
+
+    mover_jogador(player, direcao)
+    if input("Colocar Bomba:") == "s":
+        colocar_bomba(player)
+
 def print_map(mapa=Mapa):
-    for listaCelulas in mapa.matrizNova:
+    for listaCelulas in mapa.matriz:
         for celula in listaCelulas:
             match celula.tipo:
                 case 0: # Nada
@@ -271,15 +299,46 @@ def print_map(mapa=Mapa):
                     print(COR_BLOCO, end="")
                 case 2: # Barreira
                     print(COR_BARREIRA, end="")
-                case 3: # Player
-                    print(COR_PLAYER, end="")
+                case 3: # Player 1
+                    print(COR_PLAYER1, end="")
                 case 4: # Bomba
                     print(COR_BOMBA, end="")
+                case 6: # Player 2
+                    print(COR_PLAYER2, end="")
         print(Back.RESET +"")
 
 mapa = gerar_mapa(layout)
+screen = c.deepcopy(mapa)
+
+p1 = Player(DEFAULT_LIVES, DEFAULT_BOMBS, DEFAULT_POWER, DEFAULT_VELOCITY, P1_X, P1_Y, DOWN)
+p2 = Player(DEFAULT_LIVES, DEFAULT_BOMBS, DEFAULT_POWER, DEFAULT_VELOCITY, P2_X, P2_Y, UP)
+screen.matriz[p1.x][p1.y] = Celula(PLAYER1, p1)
+screen.matriz[p2.x][p2.y] = Celula(PLAYER2, p2)
 
 while True:
-    print_map(mapa)
-    mapa.matrizAtual = c.copy(mapa.matrizNova)
-    atualizar_jogo(mapa)
+    if input("(s)tart | (e)xit: ") == "e":
+        break
+
+    while True:
+        player_stats(p1)
+        player_stats(p2)
+
+        print_map(screen)
+        estadoPartida = atualizar_jogo(mapa)
+
+        if estadoPartida == EMPATE:
+            print("Ambos jogadores morreram. Empate.")
+            break
+        elif estadoPartida == JOGADOR_1_WIN:
+            print("Vitória do Jogador 1!!")
+            break
+        elif estadoPartida == JOGADOR_2_WIN:
+            print("Vitória do Jogador 2!!")
+            break
+
+        inputs(p1)
+        inputs(p2)
+
+        screen = c.deepcopy(mapa)
+        screen.matriz[p1.x][p1.y] = Celula(PLAYER1, p1)
+        screen.matriz[p2.x][p2.y] = Celula(PLAYER2, p2)
