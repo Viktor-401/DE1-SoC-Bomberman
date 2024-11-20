@@ -1,32 +1,19 @@
 #include <stdio.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <time.h>
 #include <stdbool.h>
 
+#include "config.c"
+#include "gpu_lib.h"
+#include "accel_lib.h"
 
-const MAP_SIZE = 21;
-const BOMB_TIMER = 3;
-
-//Directions
-const UP = 0;
-const DOWN = 1;
-const LEFT = 2;
-const RIGHT = 3;
-
-// Cell Types
-const EMPTY_CELL = 0;
-const BLOCK = 1;
-const BARRIER = 2;
-const BOMB = 3;
-const ITEM = 4;
-const PLAYER1 = 5;
-const PLAYER2 = 6;
-
-//Game Stats
-const ONGOING = 0;
-const DRAW = 1;
-const P1WINS = 2;
-const P2WINS = 3;
+bool sair = false;
+void encerrarJogo()
+{
+	sair = true;
+	raise(SIGTERM);
+}
 
 typedef union  Object
 {
@@ -108,12 +95,46 @@ Map* generateMap(int layout[MAP_SIZE][MAP_SIZE]) {
     return map;
 }
 
-void explode(Bomb bomb)
+bool explode(Player player, Bomb bomb, Map * map)
 {
-    //TODO
+    if (bomb.timer>0)
+    {
+        bomb.timer-=1;
+        return false;
+    }
+    int i = 0;
+    while(!takeDamage(&map->matriz[map->x-1][map->y], player, map) && i<= bomb.power)
+    {
+        verifyDamagePlayer(player, map->x-1, map->y);
+        i++;
+    }
+    int i = 0;
+    while(!takeDamage(&map->matriz[map->x+1][map->y], player, map) && i<= bomb.power)
+    {
+        verifyDamagePlayer(player, map->x+1, map->y);
+        i++;
+    }
+    int i = 0;
+    while(!takeDamage(&map->matriz[map->x][map->y-1], player, map) && i<= bomb.power)
+    {
+        verifyDamagePlayer(player, map->x, map->y-1);
+        i++;
+    }
+    int i = 0;
+    while(!takeDamage(&map->matriz[map->x][map->y+1], player, map) && i<= bomb.power)
+    {
+        verifyDamagePlayer(player, map->x, map->y+1);
+        i++;
+    }
+
+    Cell cell = map->matriz[map->x][map->y];
+    cell.type = EMPTY_CELL;
+    cell.object.empty = EMPTY_CELL;
+    bomb.owner.bombs += 1;
+    return true;
 }
 
-bool takeDamage(Cell* cell)
+bool takeDamage(Cell* cell, Player player, Map *map)
 {
     switch (cell->type)
     {
@@ -131,7 +152,7 @@ bool takeDamage(Cell* cell)
             return true;
         case BOMB:
             cell->object.bomb.timer = 0;
-            explode(cell->object.bomb);
+            explode(player,cell->object.bomb, map);
             break;
         default:
             cell->object.player.HP -=1;
@@ -145,7 +166,7 @@ bool takeDamage(Cell* cell)
     return false;
 }
 
-void damagePlayer(Player player, int x,int y)
+void verifyDamagePlayer(Player player, int x,int y)
 {
     if((x==player.posX) && (y == player.posY))
     {
@@ -221,7 +242,7 @@ int updateGame(Map* map, Player* player1, Player* player2)
             map->y = j;
             if(map->matriz[i][j].type == BOMB)
             {
-                explode(map->matriz[i][j].object.bomb);
+                explode(*player1, map->matriz[i][j].object.bomb, map);
             }
         }
     }
@@ -237,7 +258,136 @@ int updateGame(Map* map, Player* player1, Player* player2)
 
 
 }
+
+int *full;
 int main()
 {
+    // Setup
+	full = create_mapping_memory();
+	// Configurar signal para encerrar jogo ao usuario usar Ctrl + C
+	signal(SIGINT, encerrarJogo);
+	srand(time(NULL)); // seed de aleatoriedade
 
+	// Mapeamento e acesso do /dev/mem para acessar o acelerometro via I2C
+	int fd = open_and_map();
+
+	// Verificação dos periféricos da DE1-SoC
+	if (fd == -1)
+	{
+		printf("Erro na inicialização de periféricos.\n");
+		return -1;
+	}
+	set_background_color(0, 0, 0);
+	I2C0_init();
+	accel_init();
+	limpaTela(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+    
+    int accel_x, accel_y, inputKEY;
+    inputKEY = read_keys();
+    int indexCor = 1;
+
+	while (inputKEY == 0)
+	{
+		inputKEY = read_keys();
+		Delay(0.3);
+		//ImprimirtTextMatrix(titleMatriz, indexCor);
+		if (indexCor < 9)
+		{
+			indexCor++;
+		}
+		else
+		{
+			indexCor = 1;
+		}
+	}
+
+    Map* map = generateMap(mapLayout);
+
+    Player player1 =
+    {
+    .HP = DEFAULT_HP,
+    .bombs = DEFAULT_BOMBS,
+    .power = DEFAULT_POWER,
+    .posX = STARTING_P1_X,
+    .posY = STARTING_P1_Y,
+    .facingDirection = DOWN
+    };
+
+    Player player2 =
+    {
+        .HP = DEFAULT_HP,
+        .bombs = DEFAULT_BOMBS,
+        .power = DEFAULT_POWER,
+        .posX = STARTING_P1_X,
+        .posY = STARTING_P2_Y,
+        .facingDirection = UP
+    };
+
+    while(!sair)
+    {
+
+    }
+}
+void Delay(float segundos)
+{
+	// converter segundos para microsegundos
+	int microSegundos = 1000000 * segundos;
+
+	// tempo inicial
+	clock_t start_time = clock();
+
+	// loop até o Delay necessário
+	while (clock() < start_time + microSegundos);
+}
+
+void limpaTela(int x, int y, int limite_x, int limite_y)
+{
+	int i, j;
+	for (i = x; i < limite_x; i++)
+	{
+		for (j = y; j < limite_y; j++)
+		{
+			paintBackgroundBlock(i, j, 6, 7, 7);
+		}
+	}
+}
+
+void paintBackgroundBlock(int i, int j, int R, int G, int B)
+{
+    while (1)
+    {
+        if (*((full + 0xb0 / sizeof(int))) == 0)
+        {
+            set_background_block(i, j, R, G, B);
+            break;
+        }
+    }
+}
+
+void paintLargeBackgroundBlock(int column, int line, int R, int G, int B, int size)
+{
+	int i, j = 0;
+	for (i = 0; i < size; i++)
+	{
+		for (j = 0; j < size; j++)
+		{
+			set_background_block((column * size) + j, (line * size) + i, R, G, B);
+	    }
+    }
+}
+
+void ImprimirtTextMatrix(int matriz[SCREEN_HEIGHT][SCREEN_WIDTH], int indexCor)
+{
+	int i;
+	int j;
+	for (i = 0; i < SCREEN_HEIGHT; i++)
+	{
+		for (j = 0; j < SCREEN_WIDTH; j++)
+		{
+			if (matriz[i][j] != 0)
+			{
+				paintBackgroundBlock((i), (j), LISTA_CORES[indexCor]->R, LISTA_CORES[indexCor]->G, LISTA_CORES[indexCor]->B);
+			}
+		}
+	}
 }
