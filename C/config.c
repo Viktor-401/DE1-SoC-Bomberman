@@ -13,6 +13,9 @@ const STARTING_P1_X = 1;
 const STARTING_P1_Y = 1;
 const STARTING_P2_X = 19;
 const STARTING_P2_Y = 19;
+const COOLDOWN_INPUT = 15;
+const INPUT_INCLINACAO = 30;
+
 
 //Directions
 const UP = 0;

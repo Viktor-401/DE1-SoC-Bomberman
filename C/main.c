@@ -7,8 +7,10 @@
 #include "config.c"
 #include "gpu_lib.h"
 #include "accel_lib.h"
+#include <X11/Xlib.h>
 
 bool sair = false;
+bool gameOver = false;
 void encerrarJogo()
 {
 	sair = true;
@@ -206,6 +208,8 @@ bool movePlayer(Map map, Player player, int direction)
                 player.posY += 1;
                 return true;
             }
+        default:
+            break;
     }
     return false;
 }
@@ -259,6 +263,70 @@ int updateGame(Map* map, Player* player1, Player* player2)
 
 }
 
+int readInputsP1(int accel_x, int accel_y)
+{
+    if (abs(accel_x) > abs(accel_y))
+    {
+        if (accel_x > INPUT_INCLINACAO) 
+            return RIGHT;
+        else if (accel_x < -INPUT_INCLINACAO)
+            return LEFT;
+    }
+
+    if (accel_y > INPUT_INCLINACAO) 
+        return UP;
+    else if (accel_y < -INPUT_INCLINACAO)
+        return DOWN;
+
+    return -1; 
+}
+
+int readInputsP2(int mouse_x, int mouse_y)
+{
+    if (abs(mouse_x) > abs(mouse_y))
+    {
+        if (mouse_x > INPUT_INCLINACAO) 
+            return RIGHT;
+        else if (mouse_x < -INPUT_INCLINACAO)
+            return LEFT;
+    }
+
+    if (mouse_y > INPUT_INCLINACAO) 
+        return UP;
+    else if (mouse_y < -INPUT_INCLINACAO)
+        return DOWN;
+
+    return -1; 
+}
+
+int readMouseState(Display *display, Window window, int *mouseX, int *mouseY, int *leftButtonPressed) {
+    XEvent ev;
+    XNextEvent(display, &ev);
+
+    // Inicializa os valores
+    *leftButtonPressed = 0;
+
+    if (ev.type == MotionNotify) {
+        // Se for um evento de movimento, atualiza as coordenadas do mouse
+        *mouseX = ev.xmotion.x;
+        *mouseY = ev.xmotion.y;
+    }
+
+    if (ev.type == ButtonPress || ev.type == ButtonRelease) {
+        // Se for um evento de pressionamento ou liberação de botão, verifica o botão
+        if (ev.xbutton.button == LEFT_BUTTON) {
+            *mouseX = ev.xbutton.x;
+            *mouseY = ev.xbutton.y;
+
+            if (ev.type == ButtonPress) {
+                *leftButtonPressed = 1; // Botão esquerdo pressionado
+            }
+            else if (ev.type == ButtonRelease) {
+                *leftButtonPressed = 0; // Botão esquerdo liberado
+            }
+        }
+    }
+}
 int *full;
 int main()
 {
@@ -282,9 +350,17 @@ int main()
 	accel_init();
 	limpaTela(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
     
-    int accel_x, accel_y, inputKEY;
+    Display *display = XOpenDisplay(NULL);
+    Window window = XCreateSimpleWindow(display, DefaultRootWindow(display), 10, 10, 640, 480, 1, BlackPixel(display, 0), WhitePixel(display, 0));
+    
+    XMapWindow(display, window);
+    XSelectInput(display, window, PointerMotionMask | ButtonPressMask | ButtonReleaseMask);
+
+    int accel_x, accel_y, mouse_x, mouse_y, inputKEY, leftButtonPressed, gamestate;
+    
     inputKEY = read_keys();
     int indexCor = 1;
+
 
 	while (inputKEY == 0)
 	{
@@ -322,9 +398,30 @@ int main()
         .posY = STARTING_P2_Y,
         .facingDirection = UP
     };
-
     while(!sair)
     {
+        while ((gamestate == 0) && !sair)
+		{
+            
+            gamestate = updateGame(map, &player1, &player2);
+            movePlayer(*map, player1, readInputsP1(accel_x, accel_y));
+            movePlayer(*map, player2, readInputsP2(mouse_x, mouse_y));
+            readMouseState(display, window, &mouseX, &mouseY, &leftButtonPressed); 
+            inputKEY = read_keys();
+            if(inputKEY == 8)
+            {
+                Pause();
+            }
+            else if (inputKEY == 1)
+            {
+                placeBomb(&player1, &map);
+            }
+            else if(leftButtonPressed)
+            {
+                placeBomb(&player2, &map);
+            }
+
+        }
 
     }
 }
@@ -387,6 +484,50 @@ void ImprimirtTextMatrix(int matriz[SCREEN_HEIGHT][SCREEN_WIDTH], int indexCor)
 			if (matriz[i][j] != 0)
 			{
 				paintBackgroundBlock((i), (j), LISTA_CORES[indexCor]->R, LISTA_CORES[indexCor]->G, LISTA_CORES[indexCor]->B);
+			}
+		}
+	}
+}
+
+void Pause()
+{
+	int indexCor = 1;
+	limpaTela(0,0,SCREEN_WIDTH,SCREEN_HEIGHT);
+	while (1)
+	{
+		//ImprimirtTextMatrix(PauseMatriz, indexCor);
+		Delay(0.3);
+		if (indexCor < 9)
+		{
+			indexCor++;
+		}
+		else
+		{
+			indexCor = 1;
+		}
+		
+		if(read_keys() == 8)
+		{
+			break;
+		}
+
+	}
+	Delay(0.3);
+	limpaTela(0,0,SCREEN_WIDTH,SCREEN_HEIGHT);
+}
+
+void ImprimirTabuleiro(Map *map)
+{
+	int i;
+	int j;
+
+	for (i = 0; i < SCREEN_HEIGHT; i++)
+	{
+		for (j = 0; j < SCREEN_WIDTH; j++)
+		{
+			if (map->matriz[i][j] > 0)
+			{
+				paintBackgroundBlock((i), (j + 5), LISTA_CORES[map->matriz[i][j]]->R, LISTA_CORES[map->matriz[i][j]]->G, LISTA_CORES[map->matriz[i][j]]->B);
 			}
 		}
 	}
