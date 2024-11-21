@@ -133,6 +133,7 @@ bool explode(Player player, Bomb bomb, Map * map)
     cell.type = EMPTY_CELL;
     cell.object.empty = EMPTY_CELL;
     bomb.owner.bombs += 1;
+    clear_background();
     return true;
 }
 
@@ -212,6 +213,7 @@ bool movePlayer(Map map, Player player, int direction)
             break;
     }
     return false;
+
 }
 
 bool placeBomb(Player* player, Map* map)
@@ -400,12 +402,15 @@ int main()
     };
     while(!sair)
     {
-        while ((gamestate == 0) && !sair)
+        while ((gamestate == ONGOING) && !sair)
 		{
+            ImprimirTabuleiro(map);
+            if(movePlayer(*map, player1, readInputsP1(accel_x, accel_y)))
+                set_sprite(0, 0, 1, player1.posX, player1.posY);
+            if(movePlayer(*map, player2, readInputsP2(mouse_x, mouse_y)))
+                set_sprite(1, 0, 1, player2.posX, player2.posY);
+                
             
-            gamestate = updateGame(map, &player1, &player2);
-            movePlayer(*map, player1, readInputsP1(accel_x, accel_y));
-            movePlayer(*map, player2, readInputsP2(mouse_x, mouse_y));
             readMouseState(display, window, &mouseX, &mouseY, &leftButtonPressed); 
             inputKEY = read_keys();
             if(inputKEY == 8)
@@ -420,6 +425,7 @@ int main()
             {
                 placeBomb(&player2, &map);
             }
+            gamestate = updateGame(map, &player1, &player2);
 
         }
 
@@ -527,7 +533,7 @@ void ImprimirTabuleiro(Map *map)
 		{
 			if (map->matriz[i][j] > 0)
 			{
-				paintBackgroundBlock((i), (j + 5), LISTA_CORES[map->matriz[i][j]]->R, LISTA_CORES[map->matriz[i][j]]->G, LISTA_CORES[map->matriz[i][j]]->B);
+				paintBackgroundBlock((i), (j), LISTA_CORES[map->matriz[i][j]]->R, LISTA_CORES[map->matriz[i][j]]->G, LISTA_CORES[map->matriz[i][j]]->B);
 			}
 		}
 	}
