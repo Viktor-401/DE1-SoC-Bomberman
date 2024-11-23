@@ -77,7 +77,7 @@ void set_polygon(unsigned long id, unsigned long cor, unsigned long forma,
                  unsigned long tamanho, unsigned long x, unsigned long y);
 
 /*Cria o mapeamento para acessar o processador gráfico na fpga*/
-int create_mapping_memory();
+void create_mapping_memory();
 
 /*Fecha o mapeamento para acessar o processador gráfico na fpga*/
 void close_mapping_memory();

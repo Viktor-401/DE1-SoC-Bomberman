@@ -138,7 +138,20 @@ void accel_init()
 }
 
 // Função para obter o valor ajustado do eixo X
-void get_calibrated_accel_xy(int *x, int *y)
+int get_calibrated_accel_y()
+{
+    int8_t y_data_0 = 0;
+    int8_t y_data_1 = 0;
+    accel_reg_read(DATA_Y0, &y_data_0); // Lê o valor atual do eiyo y
+    accel_reg_read(DATA_Y1, &y_data_1); // Lê o valor atual do eiyo y
+    int16_t accel_y = y_data_1;
+    accel_y = accel_y << 8;
+    accel_y += y_data_0;
+    accel_y -= accel_y_offset; // Subtrai o valor do offset
+    return accel_y;
+}
+
+int get_calibrated_accel_x()
 {
     int8_t x_data_0 = 0;
     int8_t x_data_1 = 0;
@@ -148,15 +161,7 @@ void get_calibrated_accel_xy(int *x, int *y)
     accel_x = accel_x << 8;
     accel_x += x_data_0;
     accel_x -= accel_x_offset; // Subtrai o valor do offset
-    *x = accel_x;
+    return accel_x;
 
-    int8_t y_data_0 = 0;
-    int8_t y_data_1 = 0;
-    accel_reg_read(DATA_Y0, &y_data_0); // Lê o valor atual do eiyo y
-    accel_reg_read(DATA_Y1, &y_data_1); // Lê o valor atual do eiyo y
-    int16_t accel_y = y_data_1;
-    accel_y = accel_y << 8;
-    accel_y += y_data_0;
-    accel_y -= accel_y_offset; // Subtrai o valor do offset
-    *y = accel_y;
+
 }

@@ -7,534 +7,511 @@
 #include "config.c"
 #include "gpu_lib.h"
 #include "accel_lib.h"
-#include <X11/Xlib.h>
+#include <fcntl.h>
+#include <linux/input.h>
+// #include <X11/Xlib.h>
 
 bool sair = false;
 bool gameOver = false;
 void encerrarJogo()
 {
-	sair = true;
-	raise(SIGTERM);
+    sair = true;
+    raise(SIGTERM);
 }
 
-typedef union  Object
-{
-    Block block;
-    Item item;
-    Player player;
-    Bomb bomb;
-    int empty;
-}Object;
-typedef struct Cell
-{
-    int type;
-    Object object;
-}Cell;
-
-typedef struct Item
-{
-    int HP;
-    int powerBoost;
-    int increaseBombs;
-    int speedBoost;
-    int HPBoost;
-}Item;
-typedef struct Block{
-    int HP;
-    Item item;
-}Block;
-
-typedef struct Bomb
-{
-    int timer;
-    int power;
-    Player owner;
-}Bomb;
-
-typedef struct Player
-{
-    //TODO Sprites
-    int HP;
-    int bombs;
-    int power;
-    int posX;
-    int posY;
-    int facingDirection;
-}Player;
-
-typedef struct Map
-{
-    Cell matriz[MAP_SIZE][MAP_SIZE];
-    int x;
-    int y;
-    
-}Map;
-
-Map* generateMap(int layout[MAP_SIZE][MAP_SIZE]) {
-
-    Map* map = (Map*) malloc(sizeof(Map));
-    for (int i = 0; i < MAP_SIZE; i++) {
-        for (int j = 0; j < MAP_SIZE; j++) {
-            switch (layout[i][j]) {
-                case EMPTY_CELL:
-                    map->matriz[i][j].type = EMPTY_CELL;
-                    break;
-
-                case BLOCK:
-                    map->matriz[i][j].type = BLOCK;
-                    Block* block = &map->matriz[i][j].object.block;
-                    block->HP = 1;
-                    break;
-
-                case BARRIER:
-                    map->matriz[i][j].type = BARRIER;
-                    Block* block = &map->matriz[i][j].object.block;
-                    block->HP = 1;
-                    break;
-            }
-        }
-    }
-    return map;
-}
-
-bool explode(Player player, Bomb bomb, Map * map)
-{
-    if (bomb.timer>0)
-    {
-        bomb.timer-=1;
-        return false;
-    }
-    int i = 0;
-    while(!takeDamage(&map->matriz[map->x-1][map->y], player, map) && i<= bomb.power)
-    {
-        verifyDamagePlayer(player, map->x-1, map->y);
-        i++;
-    }
-    int i = 0;
-    while(!takeDamage(&map->matriz[map->x+1][map->y], player, map) && i<= bomb.power)
-    {
-        verifyDamagePlayer(player, map->x+1, map->y);
-        i++;
-    }
-    int i = 0;
-    while(!takeDamage(&map->matriz[map->x][map->y-1], player, map) && i<= bomb.power)
-    {
-        verifyDamagePlayer(player, map->x, map->y-1);
-        i++;
-    }
-    int i = 0;
-    while(!takeDamage(&map->matriz[map->x][map->y+1], player, map) && i<= bomb.power)
-    {
-        verifyDamagePlayer(player, map->x, map->y+1);
-        i++;
-    }
-
-    Cell cell = map->matriz[map->x][map->y];
-    cell.type = EMPTY_CELL;
-    cell.object.empty = EMPTY_CELL;
-    bomb.owner.bombs += 1;
-    clear_background();
-    return true;
-}
-
-bool takeDamage(Cell* cell, Player player, Map *map)
-{
-    switch (cell->type)
-    {
-        case EMPTY_CELL:
-            return false;
-        case BLOCK:
-            cell->object.block.HP -=1;
-            if(cell->object.block.HP == 0)
-            {
-                cell->type = EMPTY_CELL;
-                cell->object.empty = EMPTY_CELL;
-            }
-            return true;
-        case BARRIER:
-            return true;
-        case BOMB:
-            cell->object.bomb.timer = 0;
-            explode(player,cell->object.bomb, map);
-            break;
-        default:
-            cell->object.player.HP -=1;
-            if(cell->object.player.HP == 0)
-            {
-                cell->type = EMPTY_CELL;
-                cell->object.empty = EMPTY_CELL;
-            }
-            return true;
-    }
-    return false;
-}
-
-void verifyDamagePlayer(Player player, int x,int y)
-{
-    if((x==player.posX) && (y == player.posY))
-    {
-        player.HP -=1;
-    }
-}
-
-bool movePlayer(Map map, Player player, int direction)
-{
-    switch (direction)
-    {
-        case UP:
-            if(map.matriz[player.posX-1][player.posY].type == EMPTY_CELL)
-            {
-                player.facingDirection = UP;
-                player.posX -= 1;
-                return true;
-            }
-        case DOWN:
-            if (map.matriz[player.posX+1][player.posY].type == EMPTY_CELL)
-            {
-                player.facingDirection = DOWN;
-                player.posX += 1;
-                return true;
-            }
-        case LEFT:
-            if (map.matriz[player.posX][player.posY-1].type == EMPTY_CELL)
-            {
-                player.facingDirection = LEFT;
-                player.posY -= 1;
-                return true;
-            }
-        case RIGHT:
-            if (map.matriz[player.posX][player.posY+1].type == EMPTY_CELL)
-            {
-                player.facingDirection = RIGHT;
-                player.posY += 1;
-                return true;
-            }
-        default:
-            break;
-    }
-    return false;
-
-}
-
-bool placeBomb(Player* player, Map* map)
-{
-    bool bombPlaced = false;
-    if(player->bombs>0)
-    {
-        Bomb* bomb = &map->matriz[player->posX][player->posY].object.bomb;
-        bomb->timer = BOMB_TIMER;
-        bomb->power = player->power;
-        bomb->owner = *player;
-
-        map->matriz[player->posX][player->posY].type = BOMB;
-
-        bombPlaced = true;
-    }
-    if(bombPlaced)
-    {
-        player->bombs -=1;
-    }
-    return bombPlaced;
-}
-
-int updateGame(Map* map, Player* player1, Player* player2)
-{
-    int i, j;
-    for(i=0; i<MAP_SIZE; i++)
-    {
-        for(j=0; j<MAP_SIZE; j++)
-        {
-            map->x = i;
-            map->y = j;
-            if(map->matriz[i][j].type == BOMB)
-            {
-                explode(*player1, map->matriz[i][j].object.bomb, map);
-            }
-        }
-    }
-
-    if(player1->HP<1 && player2->HP<1)
-        return DRAW;
-    else if(player2->HP<1)
-        return P1WINS;
-    else if(player1->HP<1)
-        return P2WINS;
-    else
-        return ONGOING;
-
-
-}
-
-int readInputsP1(int accel_x, int accel_y)
-{
-    if (abs(accel_x) > abs(accel_y))
-    {
-        if (accel_x > INPUT_INCLINACAO) 
-            return RIGHT;
-        else if (accel_x < -INPUT_INCLINACAO)
-            return LEFT;
-    }
-
-    if (accel_y > INPUT_INCLINACAO) 
-        return UP;
-    else if (accel_y < -INPUT_INCLINACAO)
-        return DOWN;
-
-    return -1; 
-}
-
-int readInputsP2(int mouse_x, int mouse_y)
-{
-    if (abs(mouse_x) > abs(mouse_y))
-    {
-        if (mouse_x > INPUT_INCLINACAO) 
-            return RIGHT;
-        else if (mouse_x < -INPUT_INCLINACAO)
-            return LEFT;
-    }
-
-    if (mouse_y > INPUT_INCLINACAO) 
-        return UP;
-    else if (mouse_y < -INPUT_INCLINACAO)
-        return DOWN;
-
-    return -1; 
-}
-
-int readMouseState(Display *display, Window window, int *mouseX, int *mouseY, int *leftButtonPressed) {
-    XEvent ev;
-    XNextEvent(display, &ev);
-
-    // Inicializa os valores
-    *leftButtonPressed = 0;
-
-    if (ev.type == MotionNotify) {
-        // Se for um evento de movimento, atualiza as coordenadas do mouse
-        *mouseX = ev.xmotion.x;
-        *mouseY = ev.xmotion.y;
-    }
-
-    if (ev.type == ButtonPress || ev.type == ButtonRelease) {
-        // Se for um evento de pressionamento ou liberação de botão, verifica o botão
-        if (ev.xbutton.button == LEFT_BUTTON) {
-            *mouseX = ev.xbutton.x;
-            *mouseY = ev.xbutton.y;
-
-            if (ev.type == ButtonPress) {
-                *leftButtonPressed = 1; // Botão esquerdo pressionado
-            }
-            else if (ev.type == ButtonRelease) {
-                *leftButtonPressed = 0; // Botão esquerdo liberado
-            }
-        }
-    }
-}
-int *full;
 int main()
 {
     // Setup
-	full = create_mapping_memory();
-	// Configurar signal para encerrar jogo ao usuario usar Ctrl + C
-	signal(SIGINT, encerrarJogo);
-	srand(time(NULL)); // seed de aleatoriedade
+    struct input_event ev;
+    create_mapping_memory();
+    // Configurar signal para encerrar jogo ao usuario usar Ctrl + C
+    signal(SIGINT, encerrarJogo);
+    srand(time(NULL)); // seed de aleatoriedade
 
-	// Mapeamento e acesso do /dev/mem para acessar o acelerometro via I2C
-	int fd = open_and_map();
+    // Mapeamento e acesso do /dev/mem para acessar o acelerometro via I2C
+    int fd = open_and_map();
+    // Verificação dos periféricos da DE1-SoC
+    if (fd == -1)
+    {
+        printf("Erro na inicialização de periféricos.\n");
+        return -1;
+    }
 
-	// Verificação dos periféricos da DE1-SoC
-	if (fd == -1)
-	{
-		printf("Erro na inicialização de periféricos.\n");
-		return -1;
-	}
-	set_background_color(0, 0, 0);
-	I2C0_init();
-	accel_init();
-	limpaTela(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-    
-    Display *display = XOpenDisplay(NULL);
-    Window window = XCreateSimpleWindow(display, DefaultRootWindow(display), 10, 10, 640, 480, 1, BlackPixel(display, 0), WhitePixel(display, 0));
-    
-    XMapWindow(display, window);
-    XSelectInput(display, window, PointerMotionMask | ButtonPressMask | ButtonReleaseMask);
+    // Abrindo o dispositivo de entrada do mouse
+    int fdMouse = open("/dev/input/event0", O_RDONLY);
+    if (fdMouse == -1)
+    {
+        perror("Erro ao abrir o dispositivo de entrada");
+        return -1;
+    }
 
-    int accel_x, accel_y, mouse_x, mouse_y, inputKEY, leftButtonPressed, gamestate;
-    
+    set_background_color(0, 0, 0);
+    I2C0_init();
+    accel_init();
+    clear_background();
+
+    int accel_x, accel_y, mouse_x, mouse_y, inputKEY, leftButtonPressed, gamestate, cooldownMovimento = 0;
+
     inputKEY = read_keys();
     int indexCor = 1;
 
-
-	while (inputKEY == 0)
-	{
-		inputKEY = read_keys();
-		Delay(0.3);
-		//ImprimirtTextMatrix(titleMatriz, indexCor);
-		if (indexCor < 9)
-		{
-			indexCor++;
-		}
-		else
-		{
-			indexCor = 1;
-		}
-	}
-
-    Map* map = generateMap(mapLayout);
+    Map *map = generateMap(mapLayout);
 
     Player player1 =
-    {
-    .HP = DEFAULT_HP,
-    .bombs = DEFAULT_BOMBS,
-    .power = DEFAULT_POWER,
-    .posX = STARTING_P1_X,
-    .posY = STARTING_P1_Y,
-    .facingDirection = DOWN
-    };
+        {
+            .HP = DEFAULT_HP,
+            .bombs = DEFAULT_BOMBS,
+            .power = DEFAULT_POWER,
+            .posX = STARTING_P1_X,
+            .posY = STARTING_P1_Y,
+            .facingDirection = DOWN};
 
     Player player2 =
+        {
+            .HP = DEFAULT_HP,
+            .bombs = DEFAULT_BOMBS,
+            .power = DEFAULT_POWER,
+            .posX = STARTING_P2_X,
+            .posY = STARTING_P2_Y,
+            .facingDirection = UP};
+    set_sprite(1, 0, 1, player1.posX * 24, player1.posY * 24);
+    set_sprite(2, 1, 1, player2.posX * 24, player2.posY * 24);
+
+    // int countPassWhile = 0;
+    while (!sair)
     {
-        .HP = DEFAULT_HP,
-        .bombs = DEFAULT_BOMBS,
-        .power = DEFAULT_POWER,
-        .posX = STARTING_P1_X,
-        .posY = STARTING_P2_Y,
-        .facingDirection = UP
-    };
-    while(!sair)
-    {
-        while ((gamestate == ONGOING) && !sair)
-		{
-            ImprimirTabuleiro(map);
-            if(movePlayer(*map, player1, readInputsP1(accel_x, accel_y)))
-                set_sprite(0, 0, 1, player1.posX, player1.posY);
-            if(movePlayer(*map, player2, readInputsP2(mouse_x, mouse_y)))
-                set_sprite(1, 0, 1, player2.posX, player2.posY);
-                
-            
-            readMouseState(display, window, &mouseX, &mouseY, &leftButtonPressed); 
+
+        while (inputKEY == 0)
+        {
             inputKEY = read_keys();
-            if(inputKEY == 8)
+
+            // TODO Game Menu
+
+            if (indexCor < 9)
+            {
+                indexCor++;
+            }
+            else
+            {
+                indexCor = 1;
+            }
+        }
+
+        Map *map = generateMap(mapLayout);
+
+        Player player1 =
+            {
+                .HP = DEFAULT_HP,
+                .bombs = DEFAULT_BOMBS,
+                .power = DEFAULT_POWER,
+                .posX = STARTING_P1_X,
+                .posY = STARTING_P1_Y,
+                .facingDirection = DOWN};
+
+        Player player2 =
+            {
+                .HP = DEFAULT_HP,
+                .bombs = DEFAULT_BOMBS,
+                .power = DEFAULT_POWER,
+                .posX = STARTING_P2_X,
+                .posY = STARTING_P2_Y,
+                .facingDirection = UP};
+
+        gamestate = updateGame(map, &player1, &player2);
+        while ((gamestate == ONGOING) && !sair)
+        {
+            // countPassWhile += 1;
+            // printf("QNTwhile: %d\n", countPassWhile);
+            ImprimirTabuleiro(map);
+
+            // Movimento Player1
+            if (cooldownMovimento == COOLDOWN_INPUT)
+            {
+                // Movimento Player 1
+                accel_x = get_calibrated_accel_x(); // Receber inclinação da placa
+                accel_y = get_calibrated_accel_y();
+
+                int direction = readInputsP1(accel_x, accel_y);
+
+                // printf("pos %d\n",player1.posX);
+                if (movePlayer(*map, &player1, direction))
+                {
+                    set_sprite(1, 0, 1, player1.posX * 24, player1.posY * 24);
+                    cooldownMovimento = 0;
+                }
+
+                // Movimento Player 2. Lendo o evento do dispositivo
+                if (read(fdMouse, &ev, sizeof(struct input_event)) < sizeof(struct input_event))
+                {
+                    perror("Erro ao ler o evento");
+                    close(fdMouse);
+                    return -1;
+                }
+
+                // Verificando se o evento é de movimento do mouse (REL_X ou REL_Y)
+                if (ev.type == EV_REL)
+                {
+                    if (ev.code == REL_X)
+                    {
+                        direction = readInputsP2(0, ev.value);
+                    }
+                    else if (ev.code == REL_Y)
+                    {
+                        direction = readInputsP2(1, ev.value);
+                    }
+                }
+                else if (ev.type == EV_KEY)
+                {
+                    placeBomb(&player2, map);
+                    direction = -1;
+                }
+                else
+                {
+                    direction = -1;
+                }
+
+                if (movePlayer(*map, &player2, direction))
+                {
+                    set_sprite(2, 1, 1, player2.posX * 24, player2.posY * 24);
+                    cooldownMovimento = 0;
+                }
+            }
+            else
+            {
+                cooldownMovimento++;
+            }
+
+            inputKEY = read_keys();
+            if (inputKEY == 8)
             {
                 Pause();
             }
             else if (inputKEY == 1)
             {
-                placeBomb(&player1, &map);
+                placeBomb(&player1, map);
             }
-            else if(leftButtonPressed)
-            {
-                placeBomb(&player2, &map);
-            }
+
             gamestate = updateGame(map, &player1, &player2);
-
         }
-
     }
 }
-void Delay(float segundos)
+
+Map *generateMap(int layout[MAP_SIZE][MAP_SIZE])
 {
-	// converter segundos para microsegundos
-	int microSegundos = 1000000 * segundos;
 
-	// tempo inicial
-	clock_t start_time = clock();
-
-	// loop até o Delay necessário
-	while (clock() < start_time + microSegundos);
-}
-
-void limpaTela(int x, int y, int limite_x, int limite_y)
-{
-	int i, j;
-	for (i = x; i < limite_x; i++)
-	{
-		for (j = y; j < limite_y; j++)
-		{
-			paintBackgroundBlock(i, j, 6, 7, 7);
-		}
-	}
-}
-
-void paintBackgroundBlock(int i, int j, int R, int G, int B)
-{
-    while (1)
+    Map *map = (Map *)malloc(sizeof(Map));
+    int i, j;
+    for (i = 0; i < MAP_SIZE; i++)
     {
-        if (*((full + 0xb0 / sizeof(int))) == 0)
+        for (j = 0; j < MAP_SIZE; j++)
         {
-            set_background_block(i, j, R, G, B);
-            break;
+            switch (layout[i][j])
+            {
+            case EMPTY_CELL:
+                map->matriz[i][j].type = EMPTY_CELL;
+                break;
+
+            case BLOCK:
+                map->matriz[i][j].type = BLOCK;
+                Block *block1 = &map->matriz[i][j].object.block;
+                block1->HP = 1;
+                break;
+
+            case BARRIER:
+                map->matriz[i][j].type = BARRIER;
+                Block *block2 = &map->matriz[i][j].object.block;
+                block2->HP = 1;
+                break;
+            }
         }
     }
+    return map;
 }
+bool takeDamage(Cell *cell, Player player, Map *map);
 
-void paintLargeBackgroundBlock(int column, int line, int R, int G, int B, int size)
+void verifyDamagePlayer(Player player, int x, int y)
 {
-	int i, j = 0;
-	for (i = 0; i < size; i++)
-	{
-		for (j = 0; j < size; j++)
-		{
-			set_background_block((column * size) + j, (line * size) + i, R, G, B);
-	    }
+    if ((x == player.posX) && (y == player.posY))
+    {
+        printf("MORREU\n");
+        player.HP -= 1;
     }
 }
 
-void ImprimirtTextMatrix(int matriz[SCREEN_HEIGHT][SCREEN_WIDTH], int indexCor)
+bool explode(Player player, Bomb *bomb, Map *map)
 {
-	int i;
-	int j;
-	for (i = 0; i < SCREEN_HEIGHT; i++)
-	{
-		for (j = 0; j < SCREEN_WIDTH; j++)
-		{
-			if (matriz[i][j] != 0)
-			{
-				paintBackgroundBlock((i), (j), LISTA_CORES[indexCor]->R, LISTA_CORES[indexCor]->G, LISTA_CORES[indexCor]->B);
-			}
-		}
-	}
+    if (bomb->timer > 0)
+    {
+        printf("%d\n", bomb->timer);
+        bomb->timer -= 1;
+        return false;
+    }
+    int i = 1;
+
+    while (!takeDamage(&map->matriz[map->x - i][map->y], player, map) && i <= bomb->power)
+    {
+        verifyDamagePlayer(player, map->x - i, map->y);
+        i++;
+    }
+    i = 1;
+    while (!takeDamage(&map->matriz[map->x + i][map->y], player, map) && i <= bomb->power)
+    {
+        verifyDamagePlayer(player, map->x + i, map->y);
+        i++;
+    }
+    i = 1;
+    while (!takeDamage(&map->matriz[map->x][map->y - i], player, map) && i <= bomb->power)
+    {
+        verifyDamagePlayer(player, map->x, map->y - i);
+        i++;
+    }
+    i = 1;
+    while (!takeDamage(&map->matriz[map->x][map->y + i], player, map) && i <= bomb->power)
+    {
+        verifyDamagePlayer(player, map->x, map->y + i);
+        i++;
+    }
+    printf("mapx = %d\n", map->x);
+    printf("mapy = %d\n", map->y);
+    Cell cell = map->matriz[map->x][map->y];
+    cell.type = EMPTY_CELL;
+    bomb->owner.bombs += 1;
+
+    clear_background();
+    return true;
+}
+
+bool takeDamage(Cell *cell, Player player, Map *map)
+{
+    switch (cell->type)
+    {
+    case BLOCK:
+        printf("Error1\n");
+        cell->object.block.HP -= 1;
+        if (cell->object.block.HP == 0)
+        {
+            cell->type = EMPTY_CELL;
+        }
+        return true;
+    case BARRIER:
+        return true;
+    case BOMB:
+        printf("Error2\n");
+        cell->object.bomb.timer = 0;
+        explode(player, &cell->object.bomb, map);
+        return true;
+    }
+    return false;
+}
+
+bool movePlayer(Map map, Player *player, int direction)
+{
+    switch (direction)
+    {
+    case LEFT:
+        if (map.matriz[player->posX - 1][player->posY].type == EMPTY_CELL)
+        {
+            player->facingDirection = UP;
+            player->posX -= 1;
+            return true;
+        }
+    case RIGHT:
+        if (map.matriz[player->posX + 1][player->posY].type == EMPTY_CELL)
+        {
+            player->facingDirection = DOWN;
+            player->posX += 1;
+            return true;
+        }
+    case UP:
+        if (map.matriz[player->posX][player->posY - 1].type == EMPTY_CELL)
+        {
+            player->facingDirection = LEFT;
+            player->posY -= 1;
+            return true;
+        }
+    case DOWN:
+        if (map.matriz[player->posX][player->posY + 1].type == EMPTY_CELL)
+        {
+            player->facingDirection = RIGHT;
+            player->posY += 1;
+            return true;
+        }
+    default:
+        break;
+    }
+    return false;
+}
+
+bool placeBomb(Player *player, Map *map)
+{
+    bool bombPlaced = false;
+    if (player->bombs > 0)
+    {
+        Bomb *bomb = &map->matriz[player->posX][player->posY].object.bomb;
+        bomb->timer = BOMB_TIMER;
+        bomb->power = player->power;
+        bomb->owner = *player;
+
+        map->matriz[player->posX][player->posY].type = BOMB;
+        printf("mappx = %d\n", map->x);
+        printf("mappy = %d\n", map->y);
+
+        bombPlaced = true;
+    }
+    if (bombPlaced)
+    {
+        player->bombs -= 1;
+    }
+    return bombPlaced;
+}
+
+int updateGame(Map *map, Player *player1, Player *player2)
+{
+    int i, j;
+    for (i = 0; i < MAP_SIZE; i++)
+    {
+        for (j = 0; j < MAP_SIZE; j++)
+        {
+            map->x = i;
+            map->y = j;
+            if (map->matriz[i][j].type == BOMB)
+            {
+                explode(*player1, &map->matriz[i][j].object.bomb, map);
+            }
+        }
+    }
+
+    if (player1->HP < 1 && player2->HP < 1)
+        return DRAW;
+    else if (player2->HP < 1)
+        return P1WINS;
+    else if (player1->HP < 1)
+        return P2WINS;
+    else
+        return ONGOING;
+}
+
+int readInputsP1(int accel_x, int accel_y)
+{
+    if (accel_x > INPUT_INCLINACAO)
+        return RIGHT;
+    else if (accel_x < -INPUT_INCLINACAO)
+        return LEFT;
+
+    if (accel_y > INPUT_INCLINACAO)
+        return UP;
+    else if (accel_y < -INPUT_INCLINACAO)
+        return DOWN;
+
+    return -1;
+}
+
+int readInputsP2(int eixo, int valor)
+{
+    if (eixo == 0) // Movimento no eixo Y
+    {
+        if (valor > INPUT_INCLINACAO_MOUSE)
+        {
+            return DOWN;
+        }
+        else if (valor < -INPUT_INCLINACAO_MOUSE)
+        {
+            return UP;
+        }
+    }
+    else // Movimento no eixo X
+    {
+        if (valor > INPUT_INCLINACAO_MOUSE)
+        {
+            return RIGHT;
+        }
+        else if (valor < -INPUT_INCLINACAO_MOUSE)
+        {
+            return LEFT;
+        }
+    }
+    return -1;
+}
+
+void ImprimirTextMatrix(int matriz[SCREEN_HEIGHT][SCREEN_WIDTH], int indexCor)
+{
+    int i;
+    int j;
+    for (i = 0; i < SCREEN_HEIGHT; i++)
+    {
+        for (j = 0; j < SCREEN_WIDTH; j++)
+        {
+            if (matriz[i][j] != 0)
+            {
+                paintBackgroundBlock((i), (j), LISTA_CORES[indexCor]->R, LISTA_CORES[indexCor]->G, LISTA_CORES[indexCor]->B);
+            }
+        }
+    }
 }
 
 void Pause()
 {
-	int indexCor = 1;
-	limpaTela(0,0,SCREEN_WIDTH,SCREEN_HEIGHT);
-	while (1)
-	{
-		//ImprimirtTextMatrix(PauseMatriz, indexCor);
-		Delay(0.3);
-		if (indexCor < 9)
-		{
-			indexCor++;
-		}
-		else
-		{
-			indexCor = 1;
-		}
-		
-		if(read_keys() == 8)
-		{
-			break;
-		}
+    int indexCor = 1;
+    limpaTela(0, 0, SCREEN_HEIGHT, SCREEN_WIDTH);
+    while (1)
+    {
+        // ImprimirTextMatrix(PauseMatriz, indexCor);
+        Delay(0.3);
+        if (indexCor < 9)
+        {
+            indexCor++;
+        }
+        else
+        {
+            indexCor = 1;
+        }
 
-	}
-	Delay(0.3);
-	limpaTela(0,0,SCREEN_WIDTH,SCREEN_HEIGHT);
+        if (read_keys() == 8)
+        {
+            break;
+        }
+    }
+    Delay(0.3);
+    limpaTela(0, 0, SCREEN_HEIGHT, SCREEN_WIDTH);
 }
 
 void ImprimirTabuleiro(Map *map)
 {
-	int i;
-	int j;
+    int i;
+    int j;
+    int color;
+    for (i = 0; i < 21; i++)
+    {
+        for (j = 0; j < 21; j++)
+        {
+            color = LISTA_CORES[map->matriz[i][j].type]->R << 6 | LISTA_CORES[map->matriz[i][j].type]->G << 3 | LISTA_CORES[map->matriz[i][j].type]->B;
+            background_box(i * 3, j * 3, 3, 3, color);
+            // paintBackgroundBlock((i), (j), LISTA_CORES[map->matriz[i][j].type]->R, LISTA_CORES[map->matriz[i][j].type]->G, LISTA_CORES[map->matriz[i][j].type]->B);
+        }
+    }
+}
 
-	for (i = 0; i < SCREEN_HEIGHT; i++)
-	{
-		for (j = 0; j < SCREEN_WIDTH; j++)
-		{
-			if (map->matriz[i][j] > 0)
-			{
-				paintBackgroundBlock((i), (j), LISTA_CORES[map->matriz[i][j]]->R, LISTA_CORES[map->matriz[i][j]]->G, LISTA_CORES[map->matriz[i][j]]->B);
-			}
-		}
-	}
+void LoadSprite(int spriteSlot, int matriz[20][20])
+{
+    int i, j;
+    for (i = 0; i < 20; i++)
+    {
+        for (j = 0; j < 20; j++)
+        {
+            set_sprite_memory(1, matriz[i][j], j, i);
+        }
+    }
+}
+
+void Delay(float segundos)
+{
+    // converter segundos para microsegundos
+    int microSegundos = 1000000 * segundos;
+
+    // tempo inicial
+    clock_t start_time = clock();
+
+    // loop até o Delay necessário
+    while (clock() < start_time + microSegundos)
+        ;
 }
