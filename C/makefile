@@ -3,7 +3,7 @@ mouse:
 	sudo ./mouse
 
 main:
-	gcc -o main gpu_lib.s accel_lib.c main.c 
+	gcc -o main -pthread gpu_lib.s accel_lib.c main.c 
 	./main
 
 test: 

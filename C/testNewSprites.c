@@ -54,14 +54,25 @@ void desenhar_quadrado_na_gpu(unsigned long sprite_slot) {
     }
 }
 
+void LoadSprite(int spriteSlot, int matriz[20][20])
+{
+    int i, j;
+    for (i = 0; i < 20; i++)
+    {
+        for (j = 0; j < 20; j++)
+        {
+            set_sprite_memory(spriteSlot, matriz[j][i], i, j);
+        }
+    }
+}
+
 int main() {
     unsigned long sprite_slot = 2;  // Usaremos o slot 0 para o sprite
     create_mapping_memory();
     clear_all();
     desenhar_quadrado_na_gpu(sprite_slot);
-    set_background_color(0,7,0);
-    //set_sprite(1,0,1,50,50);
-    set_sprite(2,1,1,110,100);
+    LoadSprite(2, player2Sprite);
+    set_sprite(2,2,1,40,40);
     
     return 0;
 }

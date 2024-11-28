@@ -4,7 +4,7 @@
 #include <time.h>
 #include <stdbool.h>
 #include <sys/mman.h>
-
+#include <pthread.h>
 #include "config.c"
 #include "gpu_lib.h"
 #include "accel_lib.h"
@@ -18,6 +18,15 @@ void encerrarJogo()
     raise(SIGTERM);
 }
 
+int directionP1;
+int directionP2;
+int fdMouse;
+struct input_event ev;
+
+pthread_mutex_t dataMutex = PTHREAD_MUTEX_INITIALIZER;
+void *readAccel(void *arg);
+void *readMouse(void *arg);
+void *thread_function(void *arg);
 Map *generateMap(int layout[MAP_SIZE][MAP_SIZE]);
 void verifyDamagePlayer(Player *player, int x, int y);
 bool explode(Player *player1, Player *player2, Bomb *bomb, Map *map);
@@ -26,7 +35,7 @@ bool movePlayer(Map map, Player *player, int direction);
 bool placeBomb(Player *player, Map *map);
 int updateGame(Map *map, Player *player1, Player *player2);
 int readInputsP1(int accel_x, int accel_y);
-int readInputsP2(int player_x, int player_y, int eixo, int valor);
+int readInputsP2(int eixo, int valor);
 void ImprimirTextMatrix(int matriz[SCREEN_HEIGHT][SCREEN_WIDTH], int indexCor);
 void Pause();
 void ImprimirTabuleiro(Map *map);
@@ -36,7 +45,7 @@ Map* GameSetup(Map *map, Player *player1, Player *player2);
 void GameMenu();
 int InitDevices(int *fdMouse);
 int GetDirections(Mouse *mouse, Player *player1, Player *player2,int *directionP1, int *directionP2);
-int Movement(int *cooldownMovement, Mouse *mouse, Player *player1, Player *player2, Map map);
+int Movement(int *cooldownMovement, Player *player1, Player *player2, Map map);
 void InGameActions(int fdMouse, Player *player1, Player *player2, Map *map);
 void ProgramActions(bool *exitGame);
 
@@ -52,42 +61,46 @@ int main()
     {
         return -1;
     }
+    LoadSprite(1, player1Sprite);
+    LoadSprite(0, player2Sprite);
+
 
     int gamestate, cooldownMovimento = 0;
 
     Map *map;
     Player player1, player2;
-    Mouse mouse = {500,400,fdMouse};
     //GameSetup(&map, &player1, &player2);
 
-    LoadSprite(1, player);
-    LoadSprite(2, player);
 
     // int countPassWhile = 0;
+    pthread_t threadAccel, threadMouse;
+
+    pthread_mutex_init(&dataMutex, NULL);
+    pthread_create(&threadAccel, NULL, readAccel, NULL);
+    pthread_create(&threadMouse, NULL, readMouse, NULL);
+
+    
     while (!exitGame)
     {
         GameMenu();
         map = GameSetup(map, &player1, &player2);
-        mouse.x = 456;
-        mouse.y = 456;
         gamestate = updateGame(map, &player1, &player2);
         while ((gamestate == ONGOING) && !exitGame)
         {
             // printf("P1: HP=%d Bombs=%d X=%d Y=%d\n", player1.HP, player1.bombs, player1.posX, player1.posY);
             // printf("P2: HP=%d Bombs=%d X=%d Y=%d\n", player2.HP, player2.bombs, player2.posX, player2.posY);
             // countPassWhile += 1;
-            // printf("QNTwhile: %d\n", countPassWhile);
-            // printf("ONGOING\n");     
+            // printf("QNTwhile: %d\n", countPassWhile);     
             ImprimirTabuleiro(map);
-            printf("Mouse X: %d Y: %d\n", mouse.x, mouse.y);
-            set_polygon(0,0007, 1, 1, mouse.y, mouse.x);
             // printf("CD: %d\n", cooldownMovimento);
-            if (Movement(&cooldownMovimento, &mouse, &player1, &player2, *map) == -1)
+            printf("PRINT1\n");
+            if (Movement(&cooldownMovimento, &player1, &player2, *map) == -1)
             {
                 return -1;
             }
+
             
-            InGameActions(mouse.fdMouse, &player1, &player2, map);
+            InGameActions(fdMouse, &player1, &player2, map);
             ProgramActions(&exitGame);
 
             gamestate = updateGame(map, &player1, &player2);
@@ -105,6 +118,8 @@ int main()
             }
         }
     }
+    pthread_mutex_destroy(&dataMutex);
+
 }
 
 Map *generateMap(int layout[MAP_SIZE][MAP_SIZE])
@@ -328,17 +343,17 @@ int readInputsP1(int accel_x, int accel_y)
     return -1;
 }
 
-int readInputsP2(int player_x, int player_y, int eixo, int valor)
+int readInputsP2(int eixo, int valor)
 {
     if (eixo == 1) // Movimento no eixo Y
     {
         //printf("Dif Y: %d\n", valor-player_y);
-        if (valor-(player_y*24) > INPUT_INCLINACAO_MOUSE)
+        if (valor > INPUT_INCLINACAO_MOUSE)
         {
             printf("Down\n");
             return DOWN;
         }
-        else if (valor-(player_y*24) < INPUT_INCLINACAO_MOUSE)
+        else if (valor< -INPUT_INCLINACAO_MOUSE)
         {
             printf("UP\n");
             return UP;
@@ -347,12 +362,12 @@ int readInputsP2(int player_x, int player_y, int eixo, int valor)
     else // Movimento no eixo X
     {
     //    printf("Dif X: %d\n", valor-player_x);
-        if (valor-(player_x*24) > INPUT_INCLINACAO_MOUSE)
+        if (valor> INPUT_INCLINACAO_MOUSE)
         {
             printf("Right\n");
             return RIGHT;
         }
-        else if (valor-(player_x*24) < INPUT_INCLINACAO_MOUSE)
+        else if (valor < -INPUT_INCLINACAO_MOUSE)
         {
             printf("Left\n");
             return LEFT;
@@ -416,7 +431,7 @@ void LoadSprite(int spriteSlot, int matriz[20][20])
     {
         for (j = 0; j < 20; j++)
         {
-            set_sprite_memory(spriteSlot, matriz[i][j], i, j);
+            set_sprite_memory(spriteSlot, matriz[j][i], i, j);
         }
     }
 }
@@ -528,38 +543,14 @@ int GetDirections(Mouse *mouse, Player *player1, Player *player2,int *directionP
         {
             if (ev.code == REL_X)
             {   
-                int newX = mouse->x + ev.value;  
-                if (newX > 480)
-                {
-                    mouse->x = 480;
-                }
-                else if (newX < 20)
-                {
-                    mouse->x = 20;
-                }
-                else 
-                {
-                    mouse->x = newX;
-                }
-                *directionP2 = readInputsP2(player2->posX, player2->posY, 0, mouse->x);
+                int newX = ev.value;  
+                
+                *directionP2 = readInputsP2(0, newX);
             }
             else if (ev.code == REL_Y)
             {
-                int newY = mouse->y + ev.value;  
-                if (newY > 480)
-                {
-                    mouse->y = 480;
-                }
-                else if (newY < 20)
-                {
-                    mouse->y = 20;
-                }
-                else 
-                {
-                    mouse->y = newY;
-                }
-
-                *directionP2 = readInputsP2(player2->posX, player2->posY, 1, mouse->y);
+                int newY = ev.value;  
+                *directionP2 = readInputsP2(1, newY);
             }
         }
         else
@@ -571,37 +562,32 @@ int GetDirections(Mouse *mouse, Player *player1, Player *player2,int *directionP
     return -1;
 }
 
-int Movement(int *cooldownMovement, Mouse *mouse, Player *player1, Player *player2, Map map)
+int Movement(int *cooldownMovement, Player *player1, Player *player2, Map map)
 {
-    int directionP1, directionP2;
-    GetDirections(mouse, player1, player2, &directionP1, &directionP2);
-    if (*cooldownMovement == COOLDOWN_INPUT)
-    {
-        if (GetDirections(mouse, player1, player2, &directionP1, &directionP2) == 0)
+    //GetDirections(mouse, player1, player2, &directionP1, &directionP2);
+    //if (*cooldownMovement == COOLDOWN_INPUT)
+    //{
+        
+        // //printf("DIRECTION P2: %d\n",*directionP2);
+        // if (movePlayer(map, player1, directionP1))
+        // {
+        //     printf("move\n");
+        //     set_sprite(1, 0, 1, player1->posX * 24, player1->posY * 24);
+        //     *cooldownMovement = 0;
+        // }
+        if (movePlayer(map, player2, directionP2))
         {
-            printf("DIRECTION P1: %d\n",directionP1);
-            printf("DIRECTION P2: %d\n",directionP2);
-            if (movePlayer(map, player2, directionP2))
-            {
-                set_sprite(2, 1, 1, player2->posX * 24, player2->posY * 24);
-                *cooldownMovement = 0;
-            }
-            if (movePlayer(map, player1, directionP1))
-            {
-                set_sprite(1, 0, 1, player1->posX * 24, player1->posY * 24);
-                *cooldownMovement = 0;
-            }
+            set_sprite(2, 1, 1, player2->posX * 24, player2->posY * 24);
+            *cooldownMovement = 0;
         }
-        else
-        {
-            return -1;
-        }
-    }
-    else
-    {
-        // printf("PASSOU3\n");
-        (*cooldownMovement)++;
-    }
+
+    //}
+    //else
+   // {
+       // printf("PASSOU3\n");
+      //  printf("TESTE2\n");
+       // (*cooldownMovement)++;
+   // }
 }
 
 void InGameActions(int fdMouse, Player *player1, Player *player2, Map *map)
@@ -631,3 +617,70 @@ void ProgramActions(bool *exitGame)
         break;
     }
 }
+
+void *readAccel(void *arg)
+{
+    while (!exitGame)
+    {
+        int accel_x = get_calibrated_accel_x();
+        int accel_y = get_calibrated_accel_y();
+
+        pthread_mutex_lock(&dataMutex); // Bloqueia o mutex antes de acessar directionP1
+        directionP1 = readInputsP1(accel_x, accel_y);
+        pthread_mutex_unlock(&dataMutex); // Libera o mutex após atualizar directionP1
+
+        //printf("DIRECTION P1: %d\n", directionP1);
+         // Pausa para evitar sobrecarga (50ms entre leituras)
+    }
+
+    return NULL;
+}
+
+void *readMouse(void *arg)
+{
+    
+    ssize_t n;
+     while (1)
+    {
+        n  = read(fdMouse, &ev, sizeof(ev));
+        if (n == (ssize_t)-1)
+        {
+            perror("Error reading");
+            continue;
+        }
+        else if (n != sizeof(ev))
+        {
+            fprintf(stderr, "Error: read %ld bytes, expecting %ld\n", n, sizeof(ev));
+            continue;
+        }
+        pthread_mutex_lock(&dataMutex);
+        if (ev.type == EV_REL)
+        {
+            if (ev.code == REL_X)
+            {   
+                int newX = ev.value;  
+                printf("TESTE\n");
+                directionP2 = readInputsP2(0, newX);
+            }
+            else if (ev.code == REL_Y)
+            {
+                int newY = ev.value;  
+                printf("TESTE2\n");
+
+                directionP2 = readInputsP2(1, newY);
+            }
+        }
+        else
+        {
+            directionP2 = -1;
+        }   
+        pthread_mutex_unlock(&dataMutex);
+
+    } 
+    printf("DIRECTION P2: %d\n",directionP2);
+
+
+    
+    return NULL;
+}
+   
