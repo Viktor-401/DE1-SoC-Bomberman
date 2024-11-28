@@ -45,11 +45,11 @@ void desenhar_quadrado_na_gpu(unsigned long sprite_slot) {
 
 
     // Enviar os pixels para a GPU
-    unsigned long y =0;
-    unsigned long x = 0;
+    int y =0;
+    int x = 0;
     for (y = 0; y < 20; y++) {
         for (x = 0; x < 20; x++) {
-            set_sprite_memory(1, tabela_cores[matriz_sprite[y][x]], x, y);
+            set_sprite_memory(1, 0b110000001, x, y);
         }
     }
 }

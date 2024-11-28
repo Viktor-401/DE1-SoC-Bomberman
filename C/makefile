@@ -1,11 +1,15 @@
 mouse:
-	gcc -o mouse mouse2.c
+	gcc -o mouse -pthread mouse2.c
 	sudo ./mouse
 
 main:
 	gcc -o main gpu_lib.s accel_lib.c main.c 
 	./main
 
-loucura:
-	gcc -o loucura gpu_lib.s loucura.c 
-	./loucura
+test: 
+	gcc -o test testNewSprites.c gpu_lib.s
+	./test
+
+thr: 
+	gcc -o thr -pthread threads.c 
+	./thr
