@@ -28,7 +28,7 @@ int main()
 
     while (1)
     {
-        printf("main\n");
+        //printf("main\n");
     }
     
    
@@ -101,22 +101,17 @@ void *thread_function(void *arg) {
         if (ev.type == EV_REL)
         {
             // if (event.type == MotionNotify)
-            // // Pega a posição do mouse
             // int mouseX = event.xmotion.x;
             // int mouseY = event.xmotion.y;
             
             if (ev.code == REL_X)
             {
-                x += ev.value/SENS;
-                printf("X: %d Y: %d\n", x, y);
-                readInputsP2(100,100,0, x);
+                printf("X: %d\n", ev.value);
 
             }
             else if (ev.code == REL_Y)
             {
-                y += ev.value/SENS;
-                printf("X: %d Y: %d\n", x, y);
-                readInputsP2(100, 100, 1, y);
+                printf("Y: %d\n", ev.value);
             }
         }
         else if (ev.type == EV_KEY)
