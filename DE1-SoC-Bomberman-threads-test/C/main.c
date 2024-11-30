@@ -41,10 +41,10 @@ void Pause();
 void ImprimirTabuleiro(Map *map);
 void LoadSprite(int spriteSlot, int matriz[20][20]);
 void Delay(float segundos);
-Map* GameSetup(Map *map, Player *player1, Player *player2);
+Map *GameSetup(Map *map, Player *player1, Player *player2);
 void GameMenu();
 int InitDevices(int *fdMouse);
-int GetDirections(Mouse *mouse, Player *player1, Player *player2,int *directionP1, int *directionP2);
+int GetDirections(Mouse *mouse, Player *player1, Player *player2, int *directionP1, int *directionP2);
 void Movement(int *cooldownMovement, Player *player1, Player *player2, Map map);
 void InGameActions(int fdMouse, Player *player1, Player *player2, Map *map);
 void ProgramActions(bool *exitGame);
@@ -55,8 +55,6 @@ int main()
     signal(SIGINT, encerrarJogo);
     srand(time(NULL)); // seed de aleatoriedade
 
-    struct input_event ev;
-    int fdMouse;
     if (InitDevices(&fdMouse) == -1)
     {
         return -1;
@@ -64,19 +62,18 @@ int main()
     LoadSprite(1, player1Sprite);
     LoadSprite(0, player2Sprite);
 
-
     int gamestate, cooldownMovimento = 0;
 
     Map *map;
     Player player1, player2;
-    //GameSetup(&map, &player1, &player2);
+    // GameSetup(&map, &player1, &player2);
 
     clear_all();
     // int countPassWhile = 0;
     pthread_t threadAccel, threadMouse;
     pthread_create(&threadAccel, NULL, readAccel, NULL);
-    //pthread_create(&threadMouse, NULL, readMouse, NULL);
-    set_background_color(0,7,0);
+    // pthread_create(&threadMouse, NULL, readMouse, NULL);
+    set_background_color(0, 7, 0);
 
     while (!exitGame)
     {
@@ -85,50 +82,13 @@ int main()
         gamestate = updateGame(map, &player1, &player2);
         while ((gamestate == ONGOING) && !exitGame)
         {
-            // printf("P1: HP=%d Bombs=%d X=%d Y=%d\n", player1.HP, player1.bombs, player1.posX, player1.posY);
-            // printf("P2: HP=%d Bombs=%d X=%d Y=%d\n", player2.HP, player2.bombs, player2.posX, player2.posY);
-            // countPassWhile += 1;
-            // printf("QNTwhile: %d\n", countPassWhile);     
             ImprimirTabuleiro(map);
-            // printf("CD: %d\n", cooldownMovimento);
-            // printf("PRINT1\n");
-
-            //         // printf("THREAD\n");
-            // read(fdMouse, &ev, sizeof(struct input_event));
-
-            // int accel_x = get_calibrated_accel_x();
-            // int accel_y = get_calibrated_accel_y();
-
-            // printf("ACCEL_x = %d\n", accel_x);
-            // printf("ACCEL_y = %d\n", accel_y);
-
-            // directionP1 = readInputsP1(accel_x, accel_y);
-            // if (ev.type == EV_REL)
-            // {
-            //     if (ev.code == REL_X)
-            //     {   
-            //         int newX = ev.value;  
-            //         printf("TESTE\n");
-            //         directionP2 = readInputsP2(0, newX);
-            //     }
-            //     else if (ev.code == REL_Y)
-            //     {
-            //         int newY = ev.value;  
-            //         printf("TESTE2\n");
-
-            //         directionP2 = readInputsP2(1, newY);
-            //     }
-            // }
-            // else
-            // {
-            //     directionP2 = -1;
-            // } 
             printf("P1: %d P2: %d\n", directionP1, directionP2);
             Movement(&cooldownMovimento, &player1, &player2, *map);
 
             // InGameActions(fdMouse, &player1, &player2, map);
             ProgramActions(&exitGame);
-            //pthread_join(threadAccel, NULL);
+            // pthread_join(threadAccel, NULL);
             gamestate = updateGame(map, &player1, &player2);
             switch (gamestate)
             {
@@ -145,7 +105,6 @@ int main()
         }
     }
     pthread_mutex_destroy(&dataMutex);
-
 }
 
 Map *generateMap(int layout[MAP_SIZE][MAP_SIZE])
@@ -202,7 +161,6 @@ bool explode(Player *player1, Player *player2, Bomb *bomb, Map *map)
 
     verifyDamagePlayer(player1, map->x, map->y);
     verifyDamagePlayer(player2, map->x, map->y);
-
 
     while (!takeDamage(&map->matriz[map->x - i][map->y], player1, player2, map) && i <= bomb->power)
     {
@@ -373,13 +331,13 @@ int readInputsP2(int eixo, int valor)
 {
     if (eixo == 1) // Movimento no eixo Y
     {
-        //printf("Dif Y: %d\n", valor-player_y);
+        // printf("Dif Y: %d\n", valor-player_y);
         if (valor > INPUT_INCLINACAO_MOUSE)
         {
             printf("Down\n");
             return DOWN;
         }
-        else if (valor< -INPUT_INCLINACAO_MOUSE)
+        else if (valor < -INPUT_INCLINACAO_MOUSE)
         {
             printf("UP\n");
             return UP;
@@ -387,8 +345,8 @@ int readInputsP2(int eixo, int valor)
     }
     else // Movimento no eixo X
     {
-    //    printf("Dif X: %d\n", valor-player_x);
-        if (valor> INPUT_INCLINACAO_MOUSE)
+        //    printf("Dif X: %d\n", valor-player_x);
+        if (valor > INPUT_INCLINACAO_MOUSE)
         {
             printf("Right\n");
             return RIGHT;
@@ -412,7 +370,7 @@ void ImprimirTextMatrix(int matriz[SCREEN_HEIGHT][SCREEN_WIDTH], int indexCor)
         {
             if (matriz[i][j] != 0)
             {
-                //paintBackgroundBlock((i), (j), LISTA_CORES[indexCor]->R, LISTA_CORES[indexCor]->G, LISTA_CORES[indexCor]->B);
+                // paintBackgroundBlock((i), (j), LISTA_CORES[indexCor]->R, LISTA_CORES[indexCor]->G, LISTA_CORES[indexCor]->B);
             }
         }
     }
@@ -504,7 +462,7 @@ int InitDevices(int *fdMouse)
     clear_background();
 }
 
-Map* GameSetup(Map *map, Player *player1, Player *player2)
+Map *GameSetup(Map *map, Player *player1, Player *player2)
 {
     map = generateMap(mapLayout);
     Player player_1 =
@@ -518,19 +476,19 @@ Map* GameSetup(Map *map, Player *player1, Player *player2)
     *player1 = player_1;
 
     Player player_2 =
-    {
-        .HP = DEFAULT_HP,
-        .bombs = DEFAULT_BOMBS,
-        .power = DEFAULT_POWER,
-        .posX = STARTING_P2_X,
-        .posY = STARTING_P2_Y,
-        .facingDirection = UP};
+        {
+            .HP = DEFAULT_HP,
+            .bombs = DEFAULT_BOMBS,
+            .power = DEFAULT_POWER,
+            .posX = STARTING_P2_X,
+            .posY = STARTING_P2_Y,
+            .facingDirection = UP};
 
     *player2 = player_2;
 
     set_sprite(1, 0, 1, player1->posX * 24, player1->posY * 24);
     set_sprite(2, 1, 1, player2->posX * 24, player2->posY * 24);
-    
+
     return map;
 }
 
@@ -544,7 +502,7 @@ void GameMenu() // Game Menu
         inputKEY = read_keys();
 
         // TODO Game Menu
-        //printf("Bomberman!");
+        // printf("Bomberman!");
     }
 }
 
@@ -554,7 +512,7 @@ int GetMouseEvent(int fdMouse, struct input_event *ev)
     return 0;
 }
 
-int GetDirections(Mouse *mouse, Player *player1, Player *player2,int *directionP1, int *directionP2)
+int GetDirections(Mouse *mouse, Player *player1, Player *player2, int *directionP1, int *directionP2)
 {
     // printf("PASSOU\n");
     int accel_x = get_calibrated_accel_x(); // Receber inclinação da placa
@@ -568,14 +526,14 @@ int GetDirections(Mouse *mouse, Player *player1, Player *player2,int *directionP
         if (ev.type == EV_REL)
         {
             if (ev.code == REL_X)
-            {   
-                int newX = ev.value;  
-                
+            {
+                int newX = ev.value;
+
                 *directionP2 = readInputsP2(0, newX);
             }
             else if (ev.code == REL_Y)
             {
-                int newY = ev.value;  
+                int newY = ev.value;
                 *directionP2 = readInputsP2(1, newY);
             }
         }
@@ -590,32 +548,32 @@ int GetDirections(Mouse *mouse, Player *player1, Player *player2,int *directionP
 
 void Movement(int *cooldownMovement, Player *player1, Player *player2, Map map)
 {
-    //GetDirections(mouse, player1, player2, &directionP1, &directionP2);
-    //if (*cooldownMovement == COOLDOWN_INPUT)
+    // GetDirections(mouse, player1, player2, &directionP1, &directionP2);
+    // if (*cooldownMovement == COOLDOWN_INPUT)
     //{
-        
-        // //printf("DIRECTION P2: %d\n",*directionP2);
-        if (movePlayer(map, player1, directionP1))
-        {
-            // printf("move\n");
-            // printf("direction P1 = %d\n", directionP1);
 
-            set_sprite(1, 0, 1, player1->posX * 24, player1->posY * 24);
-            *cooldownMovement = 0;
-        }
-        if (movePlayer(map, player2, directionP2))
-        {
-            set_sprite(2, 1, 1, player2->posX * 24, player2->posY * 24);
-            *cooldownMovement = 0;
-        }
+    // //printf("DIRECTION P2: %d\n",*directionP2);
+    if (movePlayer(map, player1, directionP1))
+    {
+        // printf("move\n");
+        // printf("direction P1 = %d\n", directionP1);
+
+        set_sprite(1, 0, 1, player1->posX * 24, player1->posY * 24);
+        *cooldownMovement = 0;
+    }
+    if (movePlayer(map, player2, directionP2))
+    {
+        set_sprite(2, 1, 1, player2->posX * 24, player2->posY * 24);
+        *cooldownMovement = 0;
+    }
 
     //}
-    //else
-   // {
-       // printf("PASSOU3\n");
-      //  printf("TESTE2\n");
-       // (*cooldownMovement)++;
-   // }
+    // else
+    // {
+    // printf("PASSOU3\n");
+    //  printf("TESTE2\n");
+    // (*cooldownMovement)++;
+    // }
 }
 
 void InGameActions(int fdMouse, Player *player1, Player *player2, Map *map)
@@ -628,7 +586,7 @@ void InGameActions(int fdMouse, Player *player1, Player *player2, Map *map)
     if (read_keys() == 1)
     {
         placeBomb(player1, map);
-    }        
+    }
 }
 
 void ProgramActions(bool *exitGame)
@@ -650,7 +608,7 @@ void *readAccel(void *arg)
 {
     while (1)
     {
-    
+
         read(fdMouse, &ev, sizeof(struct input_event));
 
         directionP1 = readInputsP1(get_calibrated_accel_x(), get_calibrated_accel_y());
@@ -658,7 +616,7 @@ void *readAccel(void *arg)
         if (ev.type == EV_REL)
         {
             if (ev.code == REL_X)
-            {  
+            {
                 if (ev.value > INPUT_INCLINACAO_MOUSE)
                 {
                     directionP2 = RIGHT;
@@ -683,18 +641,17 @@ void *readAccel(void *arg)
         else
         {
             directionP2 = -1;
-        }   
-    pthread_exit(NULL);
+        }
     }
 }
 
 void *readMouse(void *arg)
 {
-    
+
     ssize_t n;
-     while (1)
+    while (1)
     {
-        n  = read(fdMouse, &ev, sizeof(struct input_event));
+        n = read(fdMouse, &ev, sizeof(struct input_event));
         if (n == (ssize_t)-1)
         {
             perror("Error reading");
@@ -709,14 +666,14 @@ void *readMouse(void *arg)
         if (ev.type == EV_REL)
         {
             if (ev.code == REL_X)
-            {   
-                int newX = ev.value;  
+            {
+                int newX = ev.value;
                 printf("TESTE\n");
                 directionP2 = readInputsP2(0, newX);
             }
             else if (ev.code == REL_Y)
             {
-                int newY = ev.value;  
+                int newY = ev.value;
                 printf("TESTE2\n");
 
                 directionP2 = readInputsP2(1, newY);
@@ -725,14 +682,10 @@ void *readMouse(void *arg)
         else
         {
             directionP2 = -1;
-        }   
+        }
         pthread_mutex_unlock(&dataMutex);
+    }
+    printf("DIRECTION P2: %d\n", directionP2);
 
-    } 
-    printf("DIRECTION P2: %d\n",directionP2);
-
-
-    
     return NULL;
 }
-   
