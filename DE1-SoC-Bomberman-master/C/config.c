@@ -121,8 +121,11 @@ const Cor CYAN = {0, 7, 7};
 const Cor MAGENTA = {7, 0, 7};
 const Cor GREEN = {0, 7, 0};
 const Cor RED = {7, 0, 0};
+const Cor AMARELO = {7, 7, 0};
+const Cor MARROM = {6, 5, 4};
+const Cor TRANSPARENTE = {6 ,6 ,7}; // Não Lembro
 
-const Cor *LISTA_CORES[9] = {&BLACK, &GRAY, &BLUE, &YELLOW, &ORANGE, &CYAN, &MAGENTA, &GREEN, &RED};
+const Cor *LISTA_CORES[12] = {&BLACK, &GRAY, &BLUE, &YELLOW, &ORANGE, &CYAN, &MAGENTA, &GREEN, &RED, &AMARELO, &MARROM, &TRANSPARENTE};
 int mapLayout[MAP_SIZE][MAP_SIZE] = {
     {BARRIER, BARRIER, BARRIER, BARRIER, BARRIER, BARRIER, BARRIER, BARRIER, BARRIER, BARRIER, BARRIER, BARRIER, BARRIER, BARRIER, BARRIER, BARRIER, BARRIER, BARRIER, BARRIER, BARRIER, BARRIER},
     {BARRIER, EMPTY_CELL, EMPTY_CELL, EMPTY_CELL, BLOCK, BLOCK, BLOCK, BLOCK, BLOCK, EMPTY_CELL, EMPTY_CELL, EMPTY_CELL, BLOCK, BLOCK, BLOCK, BLOCK, BLOCK, EMPTY_CELL, EMPTY_CELL, EMPTY_CELL, BARRIER},
@@ -360,3 +363,26 @@ int mushroomSprite[20][20] =
     {0677, 0677, 0677, 0677, 0677, 0677, 0677, 0677, 0677, 0677, 0677, 0677, 0677, 0677, 0677, 0677, 0677, 0677, 0677, 0677},
 };
 
+int bonecoBlock[20][20] =
+{
+    {11, 11, 11, 11, 11, 11, 11, 0, 0, 0, 0, 0, 0, 11, 11, 11, 11, 0, 0, 11},
+    {11, 11, 11, 11, 11, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 11, 0, 8, 8, 0},
+    {11, 11, 11, 11, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 8, 8, 0},
+    {11, 11, 11, 0, 10, 10, 10, 10, 10, 10, 10, 10, 1, 1, 1, 1, 0, 0, 0, 11},
+    {11, 11, 11, 0, 10, 0, 10, 10, 10, 10, 0, 10, 10, 1, 1, 1, 0, 0, 11, 11},
+    {11, 11, 11, 0, 10, 0, 10, 10, 10, 10, 0, 10, 10, 1, 1, 1, 0, 11, 11, 11},
+    {11, 11, 11, 0, 10, 0, 10, 10, 10, 10, 0, 10, 10, 1, 1, 1, 0, 11, 11, 11},
+    {11, 11, 11, 0, 10, 10, 10, 10, 10, 10, 10, 10, 1, 1, 1, 1, 0, 11, 11, 11},
+    {11, 11, 11, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 11, 11, 11},
+    {11, 11, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 11, 11},
+    {11, 0, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 0, 11},
+    {0, 8, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 0, 11},
+    {0, 8, 8, 0, 0, 0, 0, 0, 9, 9, 9, 0, 0, 0, 0, 0, 1, 0, 8, 0},
+    {11, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 8, 8, 0},
+    {11, 11, 11, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 11, 0, 0, 11},
+    {11, 11, 11, 2, 2, 2, 0, 0, 0, 0, 0, 0, 2, 2, 2, 11, 11, 11, 11, 11},
+    {11, 11, 0, 1, 1, 1, 0, 11, 11, 11, 11, 0, 1, 1, 1, 0, 11, 11, 11, 11},
+    {11, 11, 0, 0, 0, 0, 0, 11, 11, 11, 11, 0, 0, 0, 0, 0, 11, 11, 11, 11},
+    {11, 0, 8, 8, 8, 8, 0, 11, 11, 11, 11, 0, 8, 8, 8, 8, 0, 11, 11, 11},
+    {0, 0, 0, 0, 0, 0, 0, 11, 11, 11, 11, 0, 0, 0, 0, 0, 0, 0, 11, 11},
+};

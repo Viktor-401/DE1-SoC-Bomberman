@@ -65,7 +65,8 @@ int main()
 
     // int countPassWhile = 0;
     while (!exitGame)
-    {
+    {   
+        Imprimircoisas2x(10, 7, bonecoBlock); // Conferir o local dessa tela, pode ser antes.
         GameMenu();
         map = GameSetup(map, &player1, &player2);
         mouse.x = 456;
@@ -405,6 +406,25 @@ void ImprimirTabuleiro(Map *map)
             color = LISTA_CORES[map->matriz[i][j].type]->R << 6 | LISTA_CORES[map->matriz[i][j].type]->G << 3 | LISTA_CORES[map->matriz[i][j].type]->B;
             background_box(i * 3, j * 3, 3, 3, color);
             // paintBackgroundBlock((i), (j), LISTA_CORES[map->matriz[i][j].type]->R, LISTA_CORES[map->matriz[i][j].type]->G, LISTA_CORES[map->matriz[i][j].type]->B);
+        }
+    }
+}
+void Imprimircoisas2x(int x, int y, int matriz[20][20])
+{
+    int i;
+    int j;
+    int color;
+
+    for (i = x; i < 20; i++)
+    {
+        for (j = y; j < 20; j++)
+        {
+
+            const Cor *cor = LISTA_CORES[matriz[i][j]];
+
+            color = (cor->R << 6) | (cor->G << 3) | cor->B;
+
+            background_box(i * 2, j * 2, 2, 2, color);
         }
     }
 }
