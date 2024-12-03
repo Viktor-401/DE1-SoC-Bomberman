@@ -199,7 +199,21 @@ Cada elemento do jogo é representado por uma estrutura específica:
 3. **Condição de Vitória**:
    - O jogo termina quando apenas um jogador permanece vivo, determinando o vencedor.
 
+### Como as Threads Funcionariam no Fluxo do Jogo
+#### Inicialização
 
+O programa inicia criando as threads principais:
+Uma para gerenciar os eventos do jogador.
+Outra para atualizar e processar o estado do jogo.
+Uma terceira para desenhar a interface.
+#### Interação Contínua
+
+O jogador insere comandos (através de eventos de input na thread de entrada).
+A thread de atualização processa os comandos e atualiza as células da matriz.
+Bombas que são ativadas têm sua thread própria, que monitora o temporizador e aciona a explosão na hora certa.
+#### Renderização em Paralelo
+
+Enquanto as lógicas do jogo estão sendo processadas, a thread de renderização continua desenhando o estado atualizado na tela.
 
 ### Explicação detalhada das funções da <a href="https://github.com/Viktor-401/DE1-SoC-Bomberman/blob/master/DE1-SoC-Bomberman-master/C/main.c">main.c</a>
 
