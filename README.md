@@ -64,7 +64,7 @@ O I2C (*Inter-Integrated Circuit*), é um protocolo de comunicação serial sín
 
 Cada dispositivo conectado ao barramento I2C possui um endereço de 7 bits, o que facilita a identificação. A interação acontece quando o processador, na função de master, envia o endereço do acelerômetro e, a partir daí, realiza operações de leitura ou escrita nos registradores internos, permitindo, por exemplo, a configuração de parâmetros ou a coleta de dados do sensor.
 
-### Linguagem C para o Tetris e biblioteca do acelerômetro
+### Linguagem C para o jogo e biblioteca do acelerômetro
 
 O jogo foi elaborado em lingagem C por ser um requisito do problema, sendo usado o GCC para a compilação. A IDE ultilizada foi o Visual Studio Code.
 
