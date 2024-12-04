@@ -1,4 +1,4 @@
-# Bomberman Master | Sistemas Digitais (TP01) 
+# Bomberman | Sistemas Digitais (TP01) 
 
 <p align="center">
   <img src="imagens/top45_01.jpg" width = "600" />
@@ -18,7 +18,7 @@
 
 ## Introdução
 
-Este relatório técnico apresenta o desenvolvimento de um jogo usando biblioteca em Assembly para uma GPU do VGA e a biblioteca do acelerômetro ADXL345 na plataforma de desenvolvimento DE1-SoC com arquitetura ARMv7A. Estas s será ultilizada para rodar o jogo em estilo Bomberman. E para isso, foi necessário a aplicação prática dos conceitos de threads, programação em C e Assembly. Ao decorrer da leitura, é descrito o código do jogo, incluindo a explicação dos métodos.
+Este relatório técnico apresenta o desenvolvimento de um jogo usando biblioteca em Assembly para uma GPU do VGA e a biblioteca do acelerômetro ADXL345 na plataforma de desenvolvimento DE1-SoC com arquitetura ARMv7A. Estas bibliotecas foram ultilizada para rodar o jogo em estilo Bomberman. E para isso, foi necessário a aplicação prática dos conceitos de threads, programação em C e Assembly. Ao decorrer da leitura, é descrito o código do jogo, incluindo a explicação dos métodos.
 
 ## Fundamentação Teórica
 
@@ -202,10 +202,17 @@ Cada elemento do jogo é representado por uma estrutura específica:
 ### Como as Threads Funcionariam no Fluxo do Jogo
 #### Inicialização
 
-O programa inicia criando as threads principais:
-Uma para gerenciar os eventos do jogador.
-Outra para atualizar e processar o estado do jogo.
-Uma terceira para desenhar a interface.
+No projeto, a estrutura inicial do programa foi projetada para distribuir as tarefas principais entre diferentes threads, otimizando a organização e a execução simultânea das funcionalidades. Foram criadas quatro threads principais, com responsabilidades bem definidas:
+
+1. **Menu Inicial**Thread Principal (Main): Responsável pelo controle geral do jogo, incluindo a inicialização dos componentes, a coordenação entre as demais threads e a gestão do loop principal de execução.
+
+2. **Menu Inicial**Thread para o Controle do Mouse: Dedicada à captura e processamento dos movimentos do mouse, permitindo sua integração como uma entrada do jogador no sistema. Essa thread monitora e interpreta os eventos do dispositivo para atualizar o estado do jogo em tempo real.
+
+3. **Menu Inicial**Thread para o Acelerômetro: Focada no gerenciamento dos dados do acelerômetro da placa DE1-SoC, realizando a leitura, o processamento e a calibração dos valores capturados. Essa funcionalidade foi crucial para mapear o movimento da placa às ações dentro do jogo.
+
+4. **Menu Inicial**Thread para os Botões da Placa: Encarga de monitorar os estados dos botões disponíveis na DE1-SoC, reconhecendo pressões e liberações em tempo real. Essa thread gerencia as entradas físicas adicionais, sincronizando as ações dos jogadores com as mecânicas do jogo.
+
+Essa arquitetura permitiu a execução eficiente das tarefas, com cada thread operando de forma independente, mas sincronizada, garantindo a interação fluida entre o jogador e o sistema.
 #### Interação Contínua
 
 O jogador insere comandos (através de eventos de input na thread de entrada).
@@ -325,6 +332,14 @@ Após baixar os arquivos da pasta `source`, basta executar o arquivo makefile us
 
 
 <div align="justify">
+
+## Conclusão 
+
+O projeto Bomberman na DE1-SoC utilizou uma arquitetura baseada em threads, onde a thread principal (main) gerenciava o loop do jogo e coordenava outras threads dedicadas, como a do mouse, que captava movimentos do jogador; a do acelerômetro, que processava dados do sensor ADXL345 para controle adicional; e a dos botões, que monitorava ações físicas como movimentação e colocação de bombas.
+
+A lógica do jogo foi implementada em C, enquanto o controle do hardware gráfico e periféricos foi feito em Assembly, utilizando instruções específicas da arquitetura ARMv7A para otimizar a movimentação de sprites e a detecção de colisões. O acelerômetro ADXL345 foi integrado via protocolo I2C, permitindo uma interação inovadora com dados de movimento em três eixos.
+
+A renderização gráfica foi realizada por sprites e background block, o que facilitou a criação de elementos visuais, como jogadores, blocos, bombas e explosões. A matriz 20x20 que representava o mapa gerenciava o estado de cada célula, garantindo interações consistentes dentro da mecânica tradicional do Bomberman, como a colocação de bombas, destruição de blocos e confronto entre jogadores.
 
 ## Bibliografia
 
