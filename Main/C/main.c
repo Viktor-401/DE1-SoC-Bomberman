@@ -41,7 +41,7 @@ bool placeBomb(Player *player, Map *map);
 int updateGame(Map *map, Player *player1, Player *player2);
 int readInputsP1(int accel_x, int accel_y);
 int readInputsP2(int eixo, int valor);
-void ImprimirTextMatrix(int matriz[SCREEN_HEIGHT][SCREEN_WIDTH], int indexCor);
+void ImprimirTextMatrix(int matriz[SCREEN_HEIGHT][SCREEN_WIDTH]);
 void Pause();
 void ImprimirTabuleiro(Map *map);
 void LoadSprite(int spriteSlot, int matriz[20][20]);
@@ -91,8 +91,8 @@ void * thread_jogo()
     // int countPassWhile = 0;
 
     // pthread_create(&threadMouse, NULL, readMouse, NULL);
-    set_background_color(0, 7, 0);
-
+    set_background_color(7, 7, 7);
+    int index = 0;
     while (!exitGame)
     {
         GameMenu();
@@ -103,9 +103,19 @@ void * thread_jogo()
         {
             while(pause)
             {
-                //ImprimirTextMatrix(); 
+                clear_sprite(-1);
+                ImprimirTextMatrix(PauseScreen); 
             }
-            ImprimirTabuleiro(map);
+            
+            ImprimirTabuleiro(map); 
+
+            ImprimirDesenhosBomberman(60,15,miniBombermanDrawn[index/4]);
+            if(index == 27)
+            {
+                index = 0;
+
+            }
+            index++;    
             set_polygon(0, 0007, 1, 1, mouse.y+5, mouse.x+5);
             Movement(&cooldownMovimento, &player1, &player2, *map);
             // ProgramActions(&exitGame);
@@ -113,23 +123,33 @@ void * thread_jogo()
             switch (gamestate)
             {
             case P1WINS:
-                printf("P1 Wins\n");
                 clear_all();
+                printf("P1 Wins\n");
+                ImprimirTextMatrix(P1WScreen);
                 break;
                 break;
             case P2WINS:
-                printf("P2 Wins\n");
                 clear_all();
+                printf("P2 Wins\n");
+                ImprimirTextMatrix(P2WScreen);
                 break;
                 break;
             case DRAW:
-                printf("Draw\n");
                 clear_all();
+                printf("Draw\n");
+                ImprimirTextMatrix(drawScreen);
                 break;
                 break;
             }
             
         }
+
+        while (!read_keys())
+        {
+            Delay(0.3);
+        }
+        Delay(0.3); 
+        
     }
     pthread_exit(NULL);
 }
@@ -247,7 +267,7 @@ bool explode(Player *player1, Player *player2, Bomb *bomb, Map *map)
     {
         set_sprite(bomb->owner->bombID+i,0,0,0,0);
     }
-    clear_background();
+    //clear_background();
     printf("P1: %d\n", player1->HP);
     printf("P2: %d\n", player2->HP);
     return true;
@@ -421,11 +441,11 @@ void ImprimirTextMatrix(int matriz[SCREEN_HEIGHT][SCREEN_WIDTH])
 {
     int i;
     int j;
-    for (i = 0; i < SCREEN_HEIGHT; i++)
+    for (i = 0; i < SCREEN_WIDTH; i++)
     {
-        for (j = 0; j < SCREEN_WIDTH; j++)
+        for (j = 0; j < SCREEN_HEIGHT; j++)
         {
-            background_box(i,j,1,1, matriz[i][j]);
+            background_box(i,j,1,1, matriz[j][i]);
 
         }
     }
@@ -489,27 +509,26 @@ void ImprimirTabuleiro(Map *map)
                     background_box(i * BLOCK_SIZE, j * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE, 0222);
                     break;
                 case BLOCK:
-                    i2 = 0;
-                    j2 = 0;
-                    for (i2 = 0; i2 < BLOCK_SIZE; i2++)
-                    {
-                        for (j2 = 0; j2 < BLOCK_SIZE; j2++)
+                        for (i2 = 0; i2 < BLOCK_SIZE; i2++)
                         {
-                            if (block[j2][i2] == 1)
+                            for (j2 = 0; j2 < BLOCK_SIZE; j2++)
                             {
-                                background_box((i*BLOCK_SIZE)+i2,(j*BLOCK_SIZE)+j2,1,1, 0642);
+                                if (block[j2][i2] == 1)
+                                {
+                                    background_box((i*BLOCK_SIZE)+i2,(j*BLOCK_SIZE)+j2,1,1, 0642);
+                                }
+                                else
+                                {
+                                    background_box((i*BLOCK_SIZE)+i2,(j*BLOCK_SIZE)+j2,1,1, 0621);
+                                }
                             }
-                            else
-                            {
-                                background_box((i*BLOCK_SIZE)+i2,(j*BLOCK_SIZE)+j2,1,1, 0621);
-                            }
+                            
                         }
-                        
-                    }
                     break;
                     
                     // background_box(i * BLOCK_SIZE, j * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE, 0722);
                 default:
+                    set_polygon(1,111111111,1,1,40,40);
                     break;
                 }
                 // color = LISTA_CORES[map->matriz[i][j].type]->R << 6 | LISTA_CORES[map->matriz[i][j].type]->G << 3 | LISTA_CORES[map->matriz[i][j].type]->B;
@@ -645,11 +664,8 @@ void ImprimirDesenhosBomberman(int x, int y, int matriz[27][20])
     {
         for (j = 0; j < 20; j++)
         {
-            Cor *cor = LISTA_CORES[matriz[i][j]];
 
-            color = (cor->R << 6) | (cor->G << 3) | cor->B;
-
-            background_box((j+x), (i+y), 1, 1, color);
+            background_box((j+x), (i+y), 1, 1, matriz[i][j]);
         }
     }
 }
