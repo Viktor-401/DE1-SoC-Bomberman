@@ -160,14 +160,12 @@ O mapa é representado por uma matriz de células (`Celula`), onde cada célula 
 - **BLOCO**: Obstáculos com vida que podem ser destruídos (ou não, no caso de blocos indestrutíveis).
 - **PLAYER**: Representam os jogadores no jogo, com atributos como vida, bombas disponíveis, velocidade, entre outros.
 - **BOMBA**: Objetos colocados pelos jogadores que explodem após um determinado tempo.
-- **ITEM**: Melhorias coletáveis que aumentam atributos como raio de explosão, número de bombas, vida, ou velocidade.
 
 ##### **Estruturas**
 Cada elemento do jogo é representado por uma estrutura específica:
 - **Bloco**: Elementos destrutíveis ou indestrutíveis do cenário.
 - **Player**: Contém atributos para controlar a jogabilidade, como vida, bombas, raio de explosão, velocidade e aparência.
 - **Bomba**: Define o comportamento das explosões, com tempo e raio de efeito.
-- **Item**: Itens que concedem bônus ao jogador, como mais vida, velocidade ou bombas.
 
 #### Principais Funções
 
