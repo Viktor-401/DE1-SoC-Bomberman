@@ -354,11 +354,11 @@ Após baixar os arquivos da pasta `source`, basta executar o arquivo makefile us
 ### Telas
 
 <p align="center">
-  <img src="imagens/p1Win.jpeg" width = "800" />
+  <img src="imagens/p1win.jpeg" width = "800" />
 </p>
 <p align="center"><strong>Vitória do Player 1.</strong></p>
 <p align="center">
-  <img src="imagens/p2Win.jpeg" width = "800" />
+  <img src="imagens/p2win.jpeg" width = "800" />
 </p>
 <p align="center"><strong>Vítoria do Player 2.</strong></p>
 <p align="center">
