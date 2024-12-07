@@ -355,7 +355,7 @@ Enquanto as lógicas do jogo estão sendo processadas, a thread de renderizaçã
 
 
 
-#### Funções auxiliares
+#### **Funções auxiliares**
 ---
 ##### `void ImprimirTextMatrix(int matriz[SCREEN_HEIGHT][SCREEN_WIDTH])`
 **Descrição**: Imprime uma matriz de texto na tela.  
