@@ -213,7 +213,7 @@ Cada elemento do jogo é representado por uma estrutura específica:
    - O jogo termina quando apenas um jogador permanece vivo, determinando o vencedor.
 
 <p align="center">
-  <img src="imagens/p1win.gif" width = "800" />
+  <img src="imagens/p1Win.gif" width = "800" />
 </p>
 <p align="center"><strong>Jogador 1 ganhando o jogo.</strong></p>
 
