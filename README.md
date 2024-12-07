@@ -191,13 +191,31 @@ Cada elemento do jogo é representado por uma estrutura específica:
 
 #### **Fluxo do Jogo**
 1. **Menu Inicial**: O jogador inicia o jogo a partir de uma tela de menu.
+
+<p align="center">
+  <img src="imagens/mainScreen.gif" width = "800" />
+</p>
+<p align="center"><strong>Menu inicial com a logo do jogo.</strong></p>
+
+
 2. **Ciclo de Jogo**:
    - A matriz do mapa é varrida e atualizada.
    - O estado do jogo é verificado.
    - A tela é atualizada para refletir as mudanças.
    - Um pequeno atraso é aplicado antes de repetir o ciclo.
+
+<p align="center">
+  <img src="imagens/inGame.gif" width = "800" />
+</p>
+<p align="center"><strong>Jogo funcionando.</strong></p>
+
 3. **Condição de Vitória**:
    - O jogo termina quando apenas um jogador permanece vivo, determinando o vencedor.
+
+<p align="center">
+  <img src="imagens/p1win.gif" width = "800" />
+</p>
+<p align="center"><strong>Jogador 1 ganhando o jogo.</strong></p>
 
 ### Como as Threads Funcionariam no Fluxo do Jogo
 #### Inicialização
@@ -332,6 +350,26 @@ Após baixar os arquivos da pasta `source`, basta executar o arquivo makefile us
 
 
 <div align="justify">
+
+### Telas
+
+<p align="center">
+  <img src="imagens/p1Win.jpeg" width = "800" />
+</p>
+<p align="center"><strong>Vitória do Player 1.</strong></p>
+<p align="center">
+  <img src="imagens/p2Win.jpeg" width = "800" />
+</p>
+<p align="center"><strong>Vítoria do Player 2.</strong></p>
+<p align="center">
+  <img src="imagens/drawn.jpeg" width = "800" />
+</p>
+<p align="center"><strong>Empate entre os jogadores.</strong></p>
+<p align="center">
+  <img src="imagens/mainScreen.jpeg" width = "800" />
+</p>
+<p align="center"><strong>Main screen do jogo.</strong></p>
+
 
 ## Conclusão 
 
